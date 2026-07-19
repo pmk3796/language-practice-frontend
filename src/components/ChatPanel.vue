@@ -115,7 +115,7 @@ watch(
               title="Translate the whole sentence"
               @click="flipMessage(message)"
             >
-              ⇄ Translate
+              ⇄
             </button>
             <button
               v-if="message.role === 'assistant' && message.audioUrl"
@@ -241,53 +241,52 @@ watch(
   color: var(--accent-2);
 }
 
-/* Actions live in their own row under the text so their position is consistent
-   regardless of how the sentence wraps. */
+/* Floating hover toolbar in the bubble's top-right corner — takes no layout
+   space, so it never thins out the visible conversation. */
 .actions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 2px;
+  padding: 2px 3px;
+  border-radius: 9px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
 }
 
+.bubble:hover .actions,
+.actions:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.row.user .actions {
+  background: #3a56cf;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.flip,
 .replay {
   background: transparent;
   border: none;
-  font-size: 15px;
-  opacity: 0.7;
-}
-
-.replay:hover {
-  opacity: 1;
-}
-
-.flip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 7px;
   color: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
-  padding: 4px 8px;
+  padding: 3px 5px;
+  border-radius: 6px;
   opacity: 0.85;
 }
 
-.flip:hover {
+.flip:hover,
+.replay:hover {
   opacity: 1;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.row.user .flip {
-  border-color: rgba(255, 255, 255, 0.35);
-}
-
-.row.user .flip:hover {
-  border-color: #fff;
-  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .caret {
