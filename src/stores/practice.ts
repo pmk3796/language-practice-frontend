@@ -26,6 +26,17 @@ function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+// Strip leading/trailing punctuation and symbols (any language), keeping the
+// core word — so "lima," -> "lima", "¿cómo" -> "cómo", but "l'acqua" is intact.
+function cleanWord(s: string): string {
+  return s.replace(/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/gu, '')
+}
+
+// Case-insensitive, punctuation-insensitive key used to match/dedupe words.
+function wordKey(s: string): string {
+  return cleanWord(s).toLowerCase()
+}
+
 // The home page is scoped to one language, or 'all'. This scope filters history
 // (and, in future, a home flashcards panel) so languages never get jumbled.
 type HomeScope = string | 'all'
@@ -112,6 +123,20 @@ export const usePracticeStore = defineStore('practice', () => {
   const sessions = reactive<Session[]>(persisted.sessions)
   const activeSessionId = ref<string | null>(persisted.activeSessionId)
   const flashcardsByLang = reactive<Record<string, Flashcard[]>>(persisted.flashcards)
+
+  // One-time cleanup: strip punctuation from existing cards and drop duplicates
+  // that differ only by punctuation/case (e.g. a stray "lima," next to "lima").
+  for (const code of Object.keys(flashcardsByLang)) {
+    const seen = new Set<string>()
+    flashcardsByLang[code] = flashcardsByLang[code].filter((c) => {
+      c.target = cleanWord(c.target)
+      c.english = cleanWord(c.english)
+      const key = `${c.target.toLowerCase()}|${c.english.toLowerCase()}`
+      if (!c.target || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
 
   // Recap overlay
   const showRecap = ref(false)
@@ -387,15 +412,39 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   // --- Flashcards (per language deck) ---------------------------------------
-  function addFlashcard(target: string, english: string) {
-    const deck = ensureDeck(activeLangCode.value)
-    const exists = deck.some(
-      (c) =>
-        c.target.toLowerCase() === target.toLowerCase() &&
-        c.english.toLowerCase() === english.toLowerCase(),
+  // Words are matched with surrounding punctuation stripped, so "lima" and
+  // "lima," are the same card — and a word shows as saved wherever it appears,
+  // regardless of the punctuation it happened to carry.
+  function findFlashcard(target: string, english: string): Flashcard | undefined {
+    const tk = wordKey(target)
+    const ek = wordKey(english)
+    return ensureDeck(activeLangCode.value).find(
+      (c) => wordKey(c.target) === tk && wordKey(c.english) === ek,
     )
-    if (exists) return
-    deck.push({ id: uid(), target, english, box: 1, createdAt: Date.now() })
+  }
+
+  function isFlashcardSaved(target: string, english: string): boolean {
+    return !!findFlashcard(target, english)
+  }
+
+  function addFlashcard(target: string, english: string) {
+    const t = cleanWord(target)
+    const e = cleanWord(english)
+    if (!t) return
+    if (findFlashcard(t, e)) return
+    ensureDeck(activeLangCode.value).push({
+      id: uid(),
+      target: t,
+      english: e,
+      box: 1,
+      createdAt: Date.now(),
+    })
+  }
+
+  function toggleFlashcard(target: string, english: string) {
+    const existing = findFlashcard(target, english)
+    if (existing) removeFlashcard(existing.id)
+    else addFlashcard(target, english)
   }
 
   function removeFlashcard(id: string) {
@@ -468,7 +517,9 @@ export const usePracticeStore = defineStore('practice', () => {
     finishRecap,
     clearConversation,
     submitRecording,
+    isFlashcardSaved,
     addFlashcard,
+    toggleFlashcard,
     removeFlashcard,
     reviewFlashcard,
   }

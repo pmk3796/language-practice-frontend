@@ -16,24 +16,14 @@ function flipMessage(message: ChatMessage) {
   })
 }
 
-// Is this word already in the flashcard deck? (matches the store's dedup rule)
+// Saving/matching is punctuation-insensitive — handled centrally in the store.
 function isSaved(word: WordPair): boolean {
-  return store.flashcards.some(
-    (c) =>
-      c.target.toLowerCase() === word.target.toLowerCase() &&
-      c.english.toLowerCase() === word.english.toLowerCase(),
-  )
+  return store.isFlashcardSaved(word.target, word.english)
 }
 
 // ＋ adds the word to flashcards; ✓ (already saved) removes it.
 function toggleFlashcard(word: WordPair): void {
-  const existing = store.flashcards.find(
-    (c) =>
-      c.target.toLowerCase() === word.target.toLowerCase() &&
-      c.english.toLowerCase() === word.english.toLowerCase(),
-  )
-  if (existing) store.removeFlashcard(existing.id)
-  else store.addFlashcard(word.target, word.english)
+  store.toggleFlashcard(word.target, word.english)
 }
 
 // Tracks which assistant words are currently flipped to English, keyed by

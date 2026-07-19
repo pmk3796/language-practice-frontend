@@ -8,21 +8,11 @@ const store = usePracticeStore()
 const recap = computed(() => store.activeSession?.recap ?? null)
 
 function isSaved(w: WordPair): boolean {
-  return store.flashcards.some(
-    (c) =>
-      c.target.toLowerCase() === w.target.toLowerCase() &&
-      c.english.toLowerCase() === w.english.toLowerCase(),
-  )
+  return store.isFlashcardSaved(w.target, w.english)
 }
 
 function toggleWord(w: WordPair) {
-  const existing = store.flashcards.find(
-    (c) =>
-      c.target.toLowerCase() === w.target.toLowerCase() &&
-      c.english.toLowerCase() === w.english.toLowerCase(),
-  )
-  if (existing) store.removeFlashcard(existing.id)
-  else store.addFlashcard(w.target, w.english)
+  store.toggleFlashcard(w.target, w.english)
 }
 
 function addAll() {

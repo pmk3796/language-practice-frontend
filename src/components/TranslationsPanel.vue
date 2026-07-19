@@ -20,7 +20,14 @@ const store = usePracticeStore()
             <span class="arrow">→</span>
             <span class="target">{{ t.target }}</span>
           </div>
-          <button class="add" title="Add to flashcards" @click="store.addFlashcard(t.target, t.english)">＋</button>
+          <button
+            class="add"
+            :class="{ saved: store.isFlashcardSaved(t.target, t.english) }"
+            :title="store.isFlashcardSaved(t.target, t.english) ? 'Remove from flashcards' : 'Add to flashcards'"
+            @click="store.toggleFlashcard(t.target, t.english)"
+          >
+            {{ store.isFlashcardSaved(t.target, t.english) ? '✓' : '＋' }}
+          </button>
         </li>
       </ul>
     </div>
@@ -87,5 +94,9 @@ li {
 .add:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+.add.saved {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
 }
 </style>
