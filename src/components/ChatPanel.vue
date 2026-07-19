@@ -73,7 +73,7 @@ watch(
               v-for="(word, i) in message.words"
               :key="i"
               class="word"
-              :class="{ flipped: flipped[`${message.id}:${i}`] }"
+              :class="{ flipped: flipped[`${message.id}:${i}`], saved: isSaved(word) }"
               :title="word.english"
               @click="toggleWord(message.id, i)"
             >
@@ -84,11 +84,7 @@ watch(
                 :title="isSaved(word) ? 'Remove from flashcards' : 'Add to flashcards'"
                 @click.stop="toggleFlashcard(word)"
               >
-                <span v-if="!isSaved(word)" class="glyph">+</span>
-                <template v-else>
-                  <span class="glyph check">✓</span>
-                  <span class="glyph cross">✕</span>
-                </template>
+                <span class="glyph">{{ isSaved(word) ? '✕' : '+' }}</span>
               </button>
             </span>
             <span v-if="message.pending" class="caret">▍</span>
@@ -229,7 +225,8 @@ watch(
     box-shadow 0.15s ease;
 }
 
-/* Unsaved: reveal the ＋ when hovering the word. */
+/* The badge is a hover-only action: ＋ to add on unsaved words, red ✕ to remove
+   on saved ones. Saved state itself is shown by the underline, not the badge. */
 .word:hover .add-chip {
   display: inline-flex;
 }
@@ -238,52 +235,28 @@ watch(
   transform: scale(1.18);
 }
 
-/* Saved: a glossy green badge, always visible, that pops in when you save. */
 .add-chip.saved {
-  display: inline-flex;
-  background: linear-gradient(145deg, #62e3b0, #37bd85);
-  color: #06271b;
-  box-shadow: 0 2px 7px rgba(74, 214, 160, 0.55);
-  animation: chip-pop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Hovering a saved badge turns it red and swaps ✓ -> ✕ to signal removal. */
-.add-chip.saved:hover {
   background: linear-gradient(145deg, #ff7a86, #ff4d5e);
   color: #fff;
-  box-shadow: 0 2px 9px rgba(255, 77, 94, 0.6);
+  box-shadow: 0 2px 8px rgba(255, 77, 94, 0.5);
 }
 
 .add-chip .glyph {
   display: inline-flex;
 }
-.add-chip.saved .cross {
-  display: none;
-}
-.add-chip.saved:hover .check {
-  display: none;
-}
-.add-chip.saved:hover .cross {
-  display: inline-flex;
-}
-
-@keyframes chip-pop {
-  0% {
-    transform: scale(0.2);
-    opacity: 0;
-  }
-  70% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
 
 .word.flipped {
   background: rgba(74, 214, 160, 0.22);
   color: var(--accent-2);
+}
+
+/* Saved words get a thick green underline — a clean, always-on indicator. */
+.word.saved {
+  text-decoration: underline;
+  text-decoration-color: var(--accent-2);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
 }
 
 /* A tab attached beside the bubble, matching its style, holding the fixed
