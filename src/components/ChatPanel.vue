@@ -2,8 +2,29 @@
 import { nextTick, reactive, ref, watch } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import { playAudio } from '@/lib/audio'
+import type { WordPair } from '@/types'
 
 const store = usePracticeStore()
+
+// Is this word already in the flashcard deck? (matches the store's dedup rule)
+function isSaved(word: WordPair): boolean {
+  return store.flashcards.some(
+    (c) =>
+      c.target.toLowerCase() === word.target.toLowerCase() &&
+      c.english.toLowerCase() === word.english.toLowerCase(),
+  )
+}
+
+// ＋ adds the word to flashcards; ✓ (already saved) removes it.
+function toggleFlashcard(word: WordPair): void {
+  const existing = store.flashcards.find(
+    (c) =>
+      c.target.toLowerCase() === word.target.toLowerCase() &&
+      c.english.toLowerCase() === word.english.toLowerCase(),
+  )
+  if (existing) store.removeFlashcard(existing.id)
+  else store.addFlashcard(word.target, word.english)
+}
 
 // Tracks which assistant words are currently flipped to English, keyed by
 // "messageId:wordIndex".
@@ -55,6 +76,14 @@ watch(
               @click="toggleWord(message.id, i)"
             >
               {{ displayWord(message.id, i, word.target, word.english) }}
+              <button
+                class="add-chip"
+                :class="{ saved: isSaved(word) }"
+                :title="isSaved(word) ? 'Remove from flashcards' : 'Add to flashcards'"
+                @click.stop="toggleFlashcard(word)"
+              >
+                {{ isSaved(word) ? '✓' : '+' }}
+              </button>
             </span>
             <span v-if="message.pending" class="caret">▍</span>
           </template>
@@ -74,7 +103,10 @@ watch(
         </div>
       </div>
     </div>
-    <p class="tip">Tip: tap any word in a reply to flip between {{ store.activeLanguage?.name || 'the language' }} and English.</p>
+    <p class="tip">
+      Tip: tap a word to flip {{ store.activeLanguage?.name || 'the language' }} ↔ English, or hover it and click
+      <span class="chip-inline">＋</span> to save it to Flashcards.
+    </p>
   </section>
 </template>
 
@@ -132,10 +164,47 @@ watch(
   padding: 1px 2px;
   border-radius: 5px;
   transition: background 0.12s ease;
+  position: relative;
+  display: inline-block;
 }
 
 .word:hover {
   background: rgba(108, 140, 255, 0.25);
+}
+
+.add-chip {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Show the ＋ on hover, but keep a ✓ visible for words already saved. */
+.word:hover .add-chip {
+  display: inline-flex;
+}
+
+.add-chip.saved {
+  display: inline-flex;
+  background: var(--accent-2);
+  color: #0f1220;
+}
+
+.add-chip:hover {
+  filter: brightness(1.12);
 }
 
 .word.flipped {
@@ -171,5 +240,18 @@ watch(
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.chip-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  vertical-align: middle;
 }
 </style>
