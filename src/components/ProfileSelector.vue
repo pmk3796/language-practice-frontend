@@ -1,51 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
+import SelectMenu, { type SelectOption } from '@/components/SelectMenu.vue'
 
 const store = usePracticeStore()
+
+const options = computed<SelectOption[]>(() =>
+  store.profiles.map((p) => ({
+    value: p.id,
+    label: p.name,
+    emoji: p.emoji,
+    description: p.description,
+  })),
+)
 </script>
 
 <template>
-  <div class="field">
-    <label for="profile">Scenario</label>
-    <select
-      id="profile"
-      :value="store.draftProfile"
-      @change="store.setDraftProfile(($event.target as HTMLSelectElement).value)"
-    >
-      <option v-for="p in store.profiles" :key="p.id" :value="p.id">
-        {{ p.emoji }} {{ p.name }}
-      </option>
-    </select>
-  </div>
+  <SelectMenu
+    label="Scenario"
+    :model-value="store.draftProfile"
+    :options="options"
+    @update:model-value="store.setDraftProfile"
+  />
 </template>
-
-<style scoped>
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-label {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-select {
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 15px;
-  outline: none;
-  min-width: 190px;
-}
-
-select:disabled {
-  opacity: 0.6;
-}
-</style>
