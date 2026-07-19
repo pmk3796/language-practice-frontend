@@ -40,6 +40,19 @@ function displayWord(messageId: string, index: number, target: string, english: 
   return flipped[`${messageId}:${index}`] ? english : target
 }
 
+// Split a word into leading punctuation / core / trailing punctuation, so the
+// saved-word underline can be drawn under the core only (not the period, etc.).
+function splitWord(s: string): { lead: string; core: string; trail: string } {
+  const lead = s.match(/^[\p{P}\p{S}\s]+/u)?.[0] ?? ''
+  const trail = s.match(/[\p{P}\p{S}\s]+$/u)?.[0] ?? ''
+  if (lead.length + trail.length >= s.length) return { lead: s, core: '', trail: '' }
+  return { lead, core: s.slice(lead.length, s.length - trail.length), trail }
+}
+
+function wordParts(messageId: string, index: number, target: string, english: string) {
+  return splitWord(displayWord(messageId, index, target, english))
+}
+
 // Keep the transcript scrolled to the latest message.
 watch(
   () => store.messages.map((m) => m.text).join('|'),
@@ -77,7 +90,9 @@ watch(
               :title="word.english"
               @click="toggleWord(message.id, i)"
             >
-              {{ displayWord(message.id, i, word.target, word.english) }}
+              <span class="tok-lead">{{ wordParts(message.id, i, word.target, word.english).lead }}</span
+              ><span class="tok-core">{{ wordParts(message.id, i, word.target, word.english).core }}</span
+              ><span class="tok-trail">{{ wordParts(message.id, i, word.target, word.english).trail }}</span>
               <button
                 class="add-chip"
                 :class="{ saved: isSaved(word) }"
@@ -250,8 +265,9 @@ watch(
   color: var(--accent-2);
 }
 
-/* Saved words get a thick green underline — a clean, always-on indicator. */
-.word.saved {
+/* Saved words get a thick green underline under the core only (not the
+   surrounding punctuation), as a clean, always-on indicator. */
+.word.saved .tok-core {
   text-decoration: underline;
   text-decoration-color: var(--accent-2);
   text-decoration-thickness: 3px;
