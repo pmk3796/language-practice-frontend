@@ -9,9 +9,8 @@ const store = usePracticeStore()
     <label for="lang">Practising</label>
     <select
       id="lang"
-      :value="store.language"
-      :disabled="store.status === 'processing'"
-      @change="store.setLanguage(($event.target as HTMLSelectElement).value)"
+      :value="store.draftLanguage"
+      @change="store.setDraftLanguage(($event.target as HTMLSelectElement).value)"
     >
       <option v-for="lang in store.languages" :key="lang.code" :value="lang.code">
         {{ lang.flag }} {{ lang.name }}

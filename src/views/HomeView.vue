@@ -1,28 +1,35 @@
 <script setup lang="ts">
-import LanguageSelector from '@/components/LanguageSelector.vue'
-import ProfileSelector from '@/components/ProfileSelector.vue'
+import { usePracticeStore } from '@/stores/practice'
 import SpeedSelector from '@/components/SpeedSelector.vue'
 import RecordButton from '@/components/RecordButton.vue'
 import ChatPanel from '@/components/ChatPanel.vue'
 import TranslationsPanel from '@/components/TranslationsPanel.vue'
 import CorrectionsPanel from '@/components/CorrectionsPanel.vue'
 import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
+import SessionRecap from '@/components/SessionRecap.vue'
+
+const store = usePracticeStore()
 </script>
 
 <template>
   <div class="app">
     <header class="topbar">
-      <div class="brand">
-        <span class="logo">🗣️</span>
-        <div>
-          <h1>Language Practice</h1>
-          <p>Speak, get corrected, build vocabulary.</p>
-        </div>
+      <button class="back" @click="store.leaveSession()">← Sessions</button>
+
+      <div class="chips">
+        <span v-if="store.activeProfile" class="chip">
+          {{ store.activeProfile.emoji }} {{ store.activeProfile.name }}
+        </span>
+        <span v-if="store.activeLanguage" class="chip">
+          {{ store.activeLanguage.flag }} {{ store.activeLanguage.name }}
+        </span>
+        <span v-if="store.isArchived" class="chip archived">📁 Archived</span>
       </div>
-      <div class="settings">
-        <ProfileSelector />
-        <LanguageSelector />
+
+      <div class="right">
         <SpeedSelector />
+        <button v-if="!store.isArchived" class="end" @click="store.endSession()">End &amp; recap</button>
+        <button v-else class="end ghosted" @click="store.viewRecap()">View recap</button>
       </div>
     </header>
 
@@ -35,6 +42,8 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
       <ChatPanel />
       <FlashcardsPanel />
     </main>
+
+    <SessionRecap v-if="store.showRecap" />
   </div>
 </template>
 
@@ -50,37 +59,63 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
-.brand {
+.back {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+.back:hover {
+  border-color: var(--accent);
+}
+
+.chips {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.settings {
+.chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.chip.archived {
+  color: var(--muted);
+}
+
+.right {
+  margin-left: auto;
   display: flex;
   align-items: flex-end;
-  gap: 22px;
-  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.logo {
-  font-size: 34px;
+.end {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
 }
-
-.brand h1 {
-  margin: 0;
-  font-size: 22px;
+.end:hover {
+  filter: brightness(1.08);
 }
-
-.brand p {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 13px;
+.end.ghosted {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .grid {
@@ -99,7 +134,6 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
   grid-area: record;
 }
 
-/* Panels share a look; :deep reaches the .panel roots inside child components. */
 .grid :deep(.panel) {
   background: var(--panel);
   border: 1px solid var(--border);

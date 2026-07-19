@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
+import StartView from '@/views/StartView.vue'
 import HomeView from '@/views/HomeView.vue'
 
 const store = usePracticeStore()
@@ -13,5 +14,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <HomeView />
+  <HomeView v-if="store.activeSession" />
+  <StartView v-else />
 </template>

@@ -36,7 +36,14 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div class="recorder">
+  <!-- Archived sessions are read-only: no mic, just a note. -->
+  <div v-if="store.isArchived" class="recorder archived">
+    <div class="archived-badge">📁 Archived</div>
+    <p class="hint">This conversation is finished and read-only. You can still review it and its recap.</p>
+    <button class="review-recap" @click="store.viewRecap()">View recap</button>
+  </div>
+
+  <div v-else class="recorder">
     <div v-if="store.activeProfile" class="scenario-block">
       <div class="scenario">
         <span class="scenario-emoji">{{ store.activeProfile.emoji }}</span>
@@ -118,6 +125,25 @@ const label = computed(() => {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
+}
+
+.archived-badge {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-recap {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .mic {

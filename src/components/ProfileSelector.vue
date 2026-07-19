@@ -9,9 +9,8 @@ const store = usePracticeStore()
     <label for="profile">Scenario</label>
     <select
       id="profile"
-      :value="store.profile"
-      :disabled="store.status === 'processing'"
-      @change="store.setProfile(($event.target as HTMLSelectElement).value)"
+      :value="store.draftProfile"
+      @change="store.setDraftProfile(($event.target as HTMLSelectElement).value)"
     >
       <option v-for="p in store.profiles" :key="p.id" :value="p.id">
         {{ p.emoji }} {{ p.name }}

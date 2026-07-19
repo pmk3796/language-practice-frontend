@@ -56,3 +56,25 @@ export interface Flashcard {
   box: number
   createdAt: number
 }
+
+// The AI-generated summary shown when a session ends.
+export interface Recap {
+  summary: string
+  strengths: string[]
+  focusAreas: string[]
+  vocab: WordPair[]
+}
+
+// One practice conversation. Language + profile are fixed at creation.
+// endedAt !== null means it's archived (read-only) and has a recap.
+export interface Session {
+  id: string
+  language: string
+  profile: string
+  createdAt: number
+  endedAt: number | null
+  messages: ChatMessage[]
+  translations: TranslationEntry[]
+  corrections: CorrectionEntry[]
+  recap: Recap | null
+}

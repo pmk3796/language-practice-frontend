@@ -1,10 +1,34 @@
-import type { Correction, LanguageOption, ProfileOption, Translation, WordPair } from '@/types'
+import type { Correction, LanguageOption, ProfileOption, Recap, Translation, WordPair } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
 export interface HistoryTurn {
   role: 'user' | 'assistant'
   content: string
+}
+
+export async function requestRecap(
+  language: string,
+  profile: string,
+  messages: HistoryTurn[],
+  corrections: { correctedSentence: string; explanation: string }[],
+): Promise<Recap> {
+  const res = await fetch(`${BASE}/api/recap`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language, profile, messages, corrections }),
+  })
+  if (!res.ok) {
+    let message = 'Could not generate the recap.'
+    try {
+      const body = await res.json()
+      if (body?.message) message = body.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return res.json()
 }
 
 export async function fetchLanguages(): Promise<{ default: string; languages: LanguageOption[] }> {
