@@ -77,6 +77,7 @@ watch(
           <!-- Messages with a word breakdown render word-by-word, so each word
                can be tapped to reveal its English translation or saved (＋). This
                applies to both the assistant's replies and your own messages. -->
+          <div class="content">
           <template v-if="message.words && message.words.length">
             <span
               v-for="(word, i) in message.words"
@@ -102,23 +103,29 @@ watch(
           <template v-else>
             {{ message.text }}<span v-if="message.pending" class="caret">▍</span>
           </template>
+          </div>
 
-          <button
-            v-if="message.words && message.words.length && !message.pending"
-            class="flip"
-            title="Translate the whole sentence"
-            @click="flipMessage(message)"
+          <div
+            v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.audioUrl)"
+            class="actions"
           >
-            ⇄
-          </button>
-          <button
-            v-if="message.role === 'assistant' && message.audioUrl"
-            class="replay"
-            title="Replay"
-            @click="playAudio(message.audioUrl!)"
-          >
-            🔊
-          </button>
+            <button
+              v-if="message.words && message.words.length && !message.pending"
+              class="flip"
+              title="Translate the whole sentence"
+              @click="flipMessage(message)"
+            >
+              ⇄ Translate
+            </button>
+            <button
+              v-if="message.role === 'assistant' && message.audioUrl"
+              class="replay"
+              title="Replay"
+              @click="playAudio(message.audioUrl!)"
+            >
+              🔊
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -234,11 +241,19 @@ watch(
   color: var(--accent-2);
 }
 
+/* Actions live in their own row under the text so their position is consistent
+   regardless of how the sentence wraps. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .replay {
   background: transparent;
   border: none;
   font-size: 15px;
-  margin-left: 6px;
   opacity: 0.7;
 }
 
@@ -247,22 +262,27 @@ watch(
 }
 
 .flip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 7px;
   color: inherit;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
-  padding: 2px 6px;
-  margin-left: 6px;
-  opacity: 0.75;
-  vertical-align: middle;
+  padding: 4px 8px;
+  opacity: 0.85;
 }
 
 .flip:hover {
   opacity: 1;
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.row.user .flip {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .row.user .flip:hover {
