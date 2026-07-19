@@ -5,7 +5,7 @@ const store = usePracticeStore()
 </script>
 
 <template>
-  <div class="selector">
+  <div class="field">
     <label for="lang">Practising</label>
     <select
       id="lang"
@@ -21,17 +21,18 @@ const store = usePracticeStore()
 </template>
 
 <style scoped>
-.selector {
+.field {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
 select {
@@ -42,6 +43,7 @@ select {
   padding: 8px 12px;
   font-size: 15px;
   outline: none;
+  min-width: 150px;
 }
 
 select:disabled {

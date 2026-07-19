@@ -63,8 +63,8 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
 
 .settings {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  align-items: flex-end;
+  gap: 22px;
   flex-wrap: wrap;
 }
 

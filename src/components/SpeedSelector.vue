@@ -5,7 +5,7 @@ const store = usePracticeStore()
 </script>
 
 <template>
-  <div class="speed">
+  <div class="field">
     <label>Voice speed</label>
     <div class="seg" role="group" aria-label="Voice speed">
       <button
@@ -29,17 +29,18 @@ const store = usePracticeStore()
 </template>
 
 <style scoped>
-.speed {
+.field {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
 .seg {
@@ -56,7 +57,7 @@ label {
   border: none;
   color: var(--muted);
   border-radius: 7px;
-  padding: 6px 12px;
+  padding: 7px 14px;
   font-size: 14px;
 }
 
