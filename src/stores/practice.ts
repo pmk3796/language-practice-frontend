@@ -34,19 +34,25 @@ function uid(): string {
 
 // Persisted state loaded from localStorage. Blob URLs and pending flags are not
 // serialised (they don't survive a reload), so we strip them on save.
+type SpeechSpeed = 'slow' | 'normal'
+
 interface Persisted {
   language: string
+  speed: SpeechSpeed
   data: Record<string, LanguageData>
 }
 
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Persisted
+    if (raw) {
+      const p = JSON.parse(raw) as Partial<Persisted>
+      return { language: p.language || 'it', speed: p.speed === 'slow' ? 'slow' : 'normal', data: p.data || {} }
+    }
   } catch {
     /* ignore corrupt storage */
   }
-  return { language: 'it', data: {} }
+  return { language: 'it', speed: 'normal', data: {} }
 }
 
 export const usePracticeStore = defineStore('practice', () => {
@@ -54,6 +60,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   const languages = ref<LanguageOption[]>([])
   const language = ref<string>(persisted.language)
+  const speed = ref<SpeechSpeed>(persisted.speed)
   const status = ref<Status>('idle')
   const errorMessage = ref('')
   const errorCode = ref('')
@@ -74,7 +81,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence -----------------------------------------------------------
   watch(
-    [language, data],
+    [language, speed, data],
     () => {
       const serialisable: Record<string, LanguageData> = {}
       for (const [code, d] of Object.entries(data)) {
@@ -92,7 +99,7 @@ export const usePracticeStore = defineStore('practice', () => {
       }
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ language: language.value, data: serialisable }),
+        JSON.stringify({ language: language.value, speed: speed.value, data: serialisable }),
       )
     },
     { deep: true },
@@ -110,6 +117,10 @@ export const usePracticeStore = defineStore('practice', () => {
 
   function setLanguage(code: string) {
     language.value = code
+  }
+
+  function setSpeed(value: SpeechSpeed) {
+    speed.value = value
   }
 
   function clearConversation() {
@@ -137,7 +148,7 @@ export const usePracticeStore = defineStore('practice', () => {
     let assistant: ChatMessage | null = null
 
     try {
-      await streamConversation(blob, filename, language.value, history, {
+      await streamConversation(blob, filename, language.value, speed.value, history, {
         onTranscript: ({ userMessage }) => {
           d.messages.push({ id: uid(), role: 'user', text: userMessage })
           const msg: ChatMessage = { id: uid(), role: 'assistant', text: '', words: [], pending: true }
@@ -209,6 +220,7 @@ export const usePracticeStore = defineStore('practice', () => {
   return {
     languages,
     language,
+    speed,
     status,
     errorMessage,
     errorCode,
@@ -219,6 +231,7 @@ export const usePracticeStore = defineStore('practice', () => {
     activeLanguage,
     loadLanguages,
     setLanguage,
+    setSpeed,
     clearConversation,
     submitRecording,
     addFlashcard,

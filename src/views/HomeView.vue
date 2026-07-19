@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import SpeedSelector from '@/components/SpeedSelector.vue'
 import RecordButton from '@/components/RecordButton.vue'
 import ChatPanel from '@/components/ChatPanel.vue'
 import TranslationsPanel from '@/components/TranslationsPanel.vue'
@@ -17,7 +18,10 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
           <p>Speak, get corrected, build vocabulary.</p>
         </div>
       </div>
-      <LanguageSelector />
+      <div class="settings">
+        <SpeedSelector />
+        <LanguageSelector />
+      </div>
     </header>
 
     <main class="grid">
@@ -53,6 +57,13 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .logo {

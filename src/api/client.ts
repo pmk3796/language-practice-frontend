@@ -32,12 +32,14 @@ export async function streamConversation(
   audio: Blob,
   filename: string,
   language: string,
+  speed: 'slow' | 'normal',
   history: HistoryTurn[],
   cb: StreamCallbacks,
 ): Promise<void> {
   const form = new FormData()
   form.append('audio', audio, filename)
   form.append('language', language)
+  form.append('speed', speed)
   form.append('history', JSON.stringify(history))
 
   const res = await fetch(`${BASE}/api/conversation`, { method: 'POST', body: form })
