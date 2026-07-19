@@ -146,11 +146,13 @@ export const usePracticeStore = defineStore('practice', () => {
     const history = historyForRequest()
 
     let assistant: ChatMessage | null = null
+    let userMsg: ChatMessage | null = null
 
     try {
       await streamConversation(blob, filename, language.value, speed.value, history, {
         onTranscript: ({ userMessage }) => {
-          d.messages.push({ id: uid(), role: 'user', text: userMessage })
+          d.messages.push({ id: uid(), role: 'user', text: userMessage, words: [] })
+          userMsg = d.messages[d.messages.length - 1]!
           const msg: ChatMessage = { id: uid(), role: 'assistant', text: '', words: [], pending: true }
           d.messages.push(msg)
           assistant = d.messages[d.messages.length - 1]!
@@ -158,8 +160,9 @@ export const usePracticeStore = defineStore('practice', () => {
         onReplyDelta: ({ text }) => {
           if (assistant) assistant.text += text
         },
-        onMeta: ({ replyWords, translations: tr, correction }) => {
+        onMeta: ({ replyWords, userWords, translations: tr, correction }) => {
           if (assistant) assistant.words = replyWords
+          if (userMsg && userWords) userMsg.words = userWords
           for (const t of tr) {
             d.translations.unshift({ id: uid(), english: t.english, target: t.target })
           }

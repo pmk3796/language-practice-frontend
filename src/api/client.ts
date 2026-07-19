@@ -17,7 +17,12 @@ export async function fetchLanguages(): Promise<{ default: string; languages: La
 export interface StreamCallbacks {
   onTranscript?: (data: { userMessage: string }) => void
   onReplyDelta?: (data: { text: string }) => void
-  onMeta?: (data: { replyWords: WordPair[]; translations: Translation[]; correction: Correction }) => void
+  onMeta?: (data: {
+    replyWords: WordPair[]
+    userWords: WordPair[]
+    translations: Translation[]
+    correction: Correction
+  }) => void
   onAudio?: (data: { audio: string; mimeType: string }) => void
   onDone?: (data: unknown) => void
   onError?: (data: { message: string; code?: string }) => void

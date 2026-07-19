@@ -64,9 +64,10 @@ watch(
 
       <div v-for="message in store.messages" :key="message.id" class="row" :class="message.role">
         <div class="bubble">
-          <!-- Assistant messages render word-by-word so each can be tapped to
-               reveal its English translation. -->
-          <template v-if="message.role === 'assistant' && message.words && message.words.length">
+          <!-- Messages with a word breakdown render word-by-word, so each word
+               can be tapped to reveal its English translation or saved (＋). This
+               applies to both the assistant's replies and your own messages. -->
+          <template v-if="message.words && message.words.length">
             <span
               v-for="(word, i) in message.words"
               :key="i"
@@ -186,8 +187,11 @@ watch(
   display: none;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  color: #fff;
+  /* White chip so it stays legible on both the dark assistant bubble and the
+     blue user bubble (which is the same colour as --accent). */
+  background: #fff;
+  color: var(--accent);
+  font-weight: 700;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
