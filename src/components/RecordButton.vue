@@ -19,10 +19,14 @@ async function toggle() {
       await start()
     } catch {
       store.errorMessage = 'Microphone access was denied.'
+      store.errorCode = 'mic'
       store.status = 'error'
     }
   }
 }
+
+const isBillingError = computed(() => store.errorCode === 'insufficient_quota')
+const isKeyError = computed(() => store.errorCode === 'invalid_api_key')
 
 const label = computed(() => {
   if (busy.value) return 'Thinking…'
@@ -44,7 +48,24 @@ const label = computed(() => {
     </button>
     <div class="label">{{ label }}</div>
     <p v-if="!isSupported" class="hint danger">Recording isn't supported in this browser.</p>
-    <p v-else-if="store.status === 'error'" class="hint danger">{{ store.errorMessage }}</p>
+
+    <div v-else-if="store.status === 'error'" class="error-box" :class="{ billing: isBillingError }">
+      <div class="error-head">
+        <span class="badge">{{ isBillingError ? '💳 Billing' : isKeyError ? '🔑 API key' : '⚠️ Error' }}</span>
+      </div>
+      <p class="error-msg">{{ store.errorMessage }}</p>
+      <a
+        v-if="isBillingError"
+        class="bill-link"
+        href="https://platform.openai.com/account/billing/overview"
+        target="_blank"
+        rel="noopener"
+      >
+        Open OpenAI billing →
+      </a>
+      <p class="retry-hint">Tap the mic to try again once it's sorted.</p>
+    </div>
+
     <p v-else class="hint">
       Tap, say something in
       <strong>{{ store.activeLanguage?.name || 'your language' }}</strong>, tap again.
@@ -133,5 +154,59 @@ const label = computed(() => {
 
 .hint.danger {
   color: var(--danger);
+}
+
+.error-box {
+  max-width: 260px;
+  text-align: center;
+  background: rgba(255, 93, 108, 0.1);
+  border: 1px solid rgba(255, 93, 108, 0.4);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-box.billing {
+  background: rgba(255, 207, 92, 0.1);
+  border-color: rgba(255, 207, 92, 0.5);
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.error-msg {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.bill-link {
+  display: inline-block;
+  background: var(--warn);
+  color: #1a1e30;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 9px;
+}
+
+.bill-link:hover {
+  filter: brightness(1.05);
+}
+
+.retry-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 </style>

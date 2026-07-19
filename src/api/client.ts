@@ -20,7 +20,7 @@ export interface StreamCallbacks {
   onMeta?: (data: { replyWords: WordPair[]; translations: Translation[]; correction: Correction }) => void
   onAudio?: (data: { audio: string; mimeType: string }) => void
   onDone?: (data: unknown) => void
-  onError?: (data: { message: string }) => void
+  onError?: (data: { message: string; code?: string }) => void
 }
 
 /**

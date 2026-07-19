@@ -56,6 +56,7 @@ export const usePracticeStore = defineStore('practice', () => {
   const language = ref<string>(persisted.language)
   const status = ref<Status>('idle')
   const errorMessage = ref('')
+  const errorCode = ref('')
   const data = reactive<Record<string, LanguageData>>(persisted.data)
 
   function ensure(code: string): LanguageData {
@@ -129,6 +130,7 @@ export const usePracticeStore = defineStore('practice', () => {
   async function submitRecording(blob: Blob, filename: string) {
     status.value = 'processing'
     errorMessage.value = ''
+    errorCode.value = ''
     const d = ensure(language.value)
     const history = historyForRequest()
 
@@ -167,10 +169,11 @@ export const usePracticeStore = defineStore('practice', () => {
           if (assistant) assistant.pending = false
           status.value = 'idle'
         },
-        onError: ({ message }) => {
+        onError: ({ message, code }) => {
           if (assistant) assistant.pending = false
           status.value = 'error'
           errorMessage.value = message
+          errorCode.value = code || ''
         },
       })
     } catch (err) {
@@ -208,6 +211,7 @@ export const usePracticeStore = defineStore('practice', () => {
     language,
     status,
     errorMessage,
+    errorCode,
     messages,
     translations,
     corrections,
