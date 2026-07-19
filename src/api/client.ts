@@ -1,4 +1,4 @@
-import type { Correction, LanguageOption, Translation, WordPair } from '@/types'
+import type { Correction, LanguageOption, ProfileOption, Translation, WordPair } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
@@ -10,6 +10,12 @@ export interface HistoryTurn {
 export async function fetchLanguages(): Promise<{ default: string; languages: LanguageOption[] }> {
   const res = await fetch(`${BASE}/api/languages`)
   if (!res.ok) throw new Error('Could not load languages')
+  return res.json()
+}
+
+export async function fetchProfiles(): Promise<{ default: string; profiles: ProfileOption[] }> {
+  const res = await fetch(`${BASE}/api/profiles`)
+  if (!res.ok) throw new Error('Could not load profiles')
   return res.json()
 }
 
@@ -37,6 +43,7 @@ export async function streamConversation(
   audio: Blob,
   filename: string,
   language: string,
+  profile: string,
   speed: 'slow' | 'normal',
   history: HistoryTurn[],
   cb: StreamCallbacks,
@@ -44,6 +51,7 @@ export async function streamConversation(
   const form = new FormData()
   form.append('audio', audio, filename)
   form.append('language', language)
+  form.append('profile', profile)
   form.append('speed', speed)
   form.append('history', JSON.stringify(history))
 

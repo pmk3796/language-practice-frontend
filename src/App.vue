@@ -6,9 +6,9 @@ import HomeView from '@/views/HomeView.vue'
 const store = usePracticeStore()
 
 onMounted(() => {
-  store.loadLanguages().catch(() => {
-    // Non-fatal: the selector just won't populate if the backend is down.
-  })
+  // Non-fatal: the selectors just won't populate if the backend is down.
+  store.loadLanguages().catch(() => {})
+  store.loadProfiles().catch(() => {})
 })
 </script>
 

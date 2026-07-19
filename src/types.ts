@@ -22,6 +22,13 @@ export interface LanguageOption {
   flag: string
 }
 
+export interface ProfileOption {
+  id: string
+  name: string
+  emoji: string
+  description: string
+}
+
 // A rendered chat message. `words` is present on assistant messages for the
 // click-to-toggle behaviour. `pending` marks a message still being streamed.
 export interface ChatMessage {

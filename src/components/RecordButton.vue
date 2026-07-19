@@ -37,6 +37,10 @@ const label = computed(() => {
 
 <template>
   <div class="recorder">
+    <div v-if="store.activeProfile" class="scenario">
+      <span class="scenario-emoji">{{ store.activeProfile.emoji }}</span>
+      {{ store.activeProfile.name }}
+    </div>
     <button
       class="mic"
       :class="{ recording: isRecording, busy }"
@@ -81,6 +85,22 @@ const label = computed(() => {
   gap: 12px;
   justify-content: center;
   height: 100%;
+}
+
+.scenario {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.scenario-emoji {
+  font-size: 16px;
 }
 
 .mic {

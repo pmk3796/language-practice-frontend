@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import ProfileSelector from '@/components/ProfileSelector.vue'
 import SpeedSelector from '@/components/SpeedSelector.vue'
 import RecordButton from '@/components/RecordButton.vue'
 import ChatPanel from '@/components/ChatPanel.vue'
@@ -19,8 +20,9 @@ import FlashcardsPanel from '@/components/FlashcardsPanel.vue'
         </div>
       </div>
       <div class="settings">
-        <SpeedSelector />
+        <ProfileSelector />
         <LanguageSelector />
+        <SpeedSelector />
       </div>
     </header>
 

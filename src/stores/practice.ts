@@ -5,9 +5,10 @@ import type {
   CorrectionEntry,
   Flashcard,
   LanguageOption,
+  ProfileOption,
   TranslationEntry,
 } from '@/types'
-import { fetchLanguages, streamConversation, type HistoryTurn } from '@/api/client'
+import { fetchLanguages, fetchProfiles, streamConversation, type HistoryTurn } from '@/api/client'
 import { base64ToBlobUrl, playAudio } from '@/lib/audio'
 
 // Everything a single language accumulates. Data is kept separate per language
@@ -38,6 +39,7 @@ type SpeechSpeed = 'slow' | 'normal'
 
 interface Persisted {
   language: string
+  profile: string
   speed: SpeechSpeed
   data: Record<string, LanguageData>
 }
@@ -47,12 +49,17 @@ function load(): Persisted {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const p = JSON.parse(raw) as Partial<Persisted>
-      return { language: p.language || 'it', speed: p.speed === 'slow' ? 'slow' : 'normal', data: p.data || {} }
+      return {
+        language: p.language || 'it',
+        profile: p.profile || 'free',
+        speed: p.speed === 'slow' ? 'slow' : 'normal',
+        data: p.data || {},
+      }
     }
   } catch {
     /* ignore corrupt storage */
   }
-  return { language: 'it', speed: 'normal', data: {} }
+  return { language: 'it', profile: 'free', speed: 'normal', data: {} }
 }
 
 export const usePracticeStore = defineStore('practice', () => {
@@ -60,6 +67,8 @@ export const usePracticeStore = defineStore('practice', () => {
 
   const languages = ref<LanguageOption[]>([])
   const language = ref<string>(persisted.language)
+  const profiles = ref<ProfileOption[]>([])
+  const profile = ref<string>(persisted.profile)
   const speed = ref<SpeechSpeed>(persisted.speed)
   const status = ref<Status>('idle')
   const errorMessage = ref('')
@@ -78,10 +87,11 @@ export const usePracticeStore = defineStore('practice', () => {
   const flashcards = computed(() => ensure(language.value).flashcards)
 
   const activeLanguage = computed(() => languages.value.find((l) => l.code === language.value))
+  const activeProfile = computed(() => profiles.value.find((p) => p.id === profile.value))
 
   // --- Persistence -----------------------------------------------------------
   watch(
-    [language, speed, data],
+    [language, profile, speed, data],
     () => {
       const serialisable: Record<string, LanguageData> = {}
       for (const [code, d] of Object.entries(data)) {
@@ -99,7 +109,12 @@ export const usePracticeStore = defineStore('practice', () => {
       }
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ language: language.value, speed: speed.value, data: serialisable }),
+        JSON.stringify({
+          language: language.value,
+          profile: profile.value,
+          speed: speed.value,
+          data: serialisable,
+        }),
       )
     },
     { deep: true },
@@ -115,8 +130,20 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
+  async function loadProfiles() {
+    const res = await fetchProfiles()
+    profiles.value = res.profiles
+    if (!res.profiles.some((p) => p.id === profile.value)) {
+      profile.value = res.default
+    }
+  }
+
   function setLanguage(code: string) {
     language.value = code
+  }
+
+  function setProfile(id: string) {
+    profile.value = id
   }
 
   function setSpeed(value: SpeechSpeed) {
@@ -149,7 +176,7 @@ export const usePracticeStore = defineStore('practice', () => {
     let userMsg: ChatMessage | null = null
 
     try {
-      await streamConversation(blob, filename, language.value, speed.value, history, {
+      await streamConversation(blob, filename, language.value, profile.value, speed.value, history, {
         onTranscript: ({ userMessage }) => {
           d.messages.push({ id: uid(), role: 'user', text: userMessage, words: [] })
           userMsg = d.messages[d.messages.length - 1]!
@@ -223,17 +250,22 @@ export const usePracticeStore = defineStore('practice', () => {
   return {
     languages,
     language,
+    profiles,
+    profile,
     speed,
     status,
     errorMessage,
     errorCode,
+    activeProfile,
     messages,
     translations,
     corrections,
     flashcards,
     activeLanguage,
     loadLanguages,
+    loadProfiles,
     setLanguage,
+    setProfile,
     setSpeed,
     clearConversation,
     submitRecording,
