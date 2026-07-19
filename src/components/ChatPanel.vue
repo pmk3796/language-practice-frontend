@@ -2,9 +2,19 @@
 import { nextTick, reactive, ref, watch } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import { playAudio } from '@/lib/audio'
-import type { WordPair } from '@/types'
+import type { ChatMessage, WordPair } from '@/types'
 
 const store = usePracticeStore()
+
+// Flip an entire message at once: if every word is already showing English,
+// flip them all back to the target language; otherwise flip them all to English.
+function flipMessage(message: ChatMessage) {
+  if (!message.words) return
+  const allEnglish = message.words.every((_, i) => flipped[`${message.id}:${i}`])
+  message.words.forEach((_, i) => {
+    flipped[`${message.id}:${i}`] = !allEnglish
+  })
+}
 
 // Is this word already in the flashcard deck? (matches the store's dedup rule)
 function isSaved(word: WordPair): boolean {
@@ -94,6 +104,14 @@ watch(
           </template>
 
           <button
+            v-if="message.words && message.words.length && !message.pending"
+            class="flip"
+            title="Translate the whole sentence"
+            @click="flipMessage(message)"
+          >
+            ⇄
+          </button>
+          <button
             v-if="message.role === 'assistant' && message.audioUrl"
             class="replay"
             title="Replay"
@@ -105,8 +123,8 @@ watch(
       </div>
     </div>
     <p class="tip">
-      Tip: tap a word to flip {{ store.activeLanguage?.name || 'the language' }} ↔ English, or hover it and click
-      <span class="chip-inline">＋</span> to save it to Flashcards.
+      Tip: tap a word to flip it, or use <span class="flip-inline">⇄</span> to translate the whole line. Hover a
+      word and click <span class="chip-inline">＋</span> to save it to Flashcards.
     </p>
   </section>
 </template>
@@ -228,6 +246,30 @@ watch(
   opacity: 1;
 }
 
+.flip {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  margin-left: 6px;
+  opacity: 0.75;
+  vertical-align: middle;
+}
+
+.flip:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.row.user .flip:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
 .caret {
   animation: blink 1s steps(2) infinite;
   color: var(--accent);
@@ -256,6 +298,17 @@ watch(
   background: var(--accent);
   color: #fff;
   font-size: 10px;
+  vertical-align: middle;
+}
+
+.flip-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0 4px;
+  font-size: 11px;
   vertical-align: middle;
 }
 </style>
