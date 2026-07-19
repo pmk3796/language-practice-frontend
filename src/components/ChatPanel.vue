@@ -271,7 +271,7 @@ watch(
   text-decoration: underline;
   text-decoration-color: var(--accent-2);
   text-decoration-thickness: 3px;
-  text-underline-offset: 3px;
+  text-underline-offset: 6px;
   text-decoration-skip-ink: none;
 }
 
