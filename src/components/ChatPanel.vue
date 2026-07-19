@@ -104,28 +104,30 @@ watch(
             {{ message.text }}<span v-if="message.pending" class="caret">▍</span>
           </template>
           </div>
+        </div>
 
-          <div
-            v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.audioUrl)"
-            class="actions"
+        <!-- A tab attached to the end of the bubble (in the empty horizontal
+             space) with a fixed sentence-flip toggle. -->
+        <div
+          v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.audioUrl)"
+          class="ext"
+        >
+          <button
+            v-if="message.words && message.words.length && !message.pending"
+            class="ext-btn"
+            title="Translate the whole sentence"
+            @click="flipMessage(message)"
           >
-            <button
-              v-if="message.words && message.words.length && !message.pending"
-              class="flip"
-              title="Translate the whole sentence"
-              @click="flipMessage(message)"
-            >
-              ⇄
-            </button>
-            <button
-              v-if="message.role === 'assistant' && message.audioUrl"
-              class="replay"
-              title="Replay"
-              @click="playAudio(message.audioUrl!)"
-            >
-              🔊
-            </button>
-          </div>
+            ⇄
+          </button>
+          <button
+            v-if="message.role === 'assistant' && message.audioUrl"
+            class="ext-btn"
+            title="Replay"
+            @click="playAudio(message.audioUrl!)"
+          >
+            🔊
+          </button>
         </div>
       </div>
     </div>
@@ -158,10 +160,20 @@ watch(
 
 .row {
   display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .row.user {
   justify-content: flex-end;
+}
+
+/* On your (right-aligned) messages, the tab sits to the LEFT of the bubble. */
+.row.user .bubble {
+  order: 2;
+}
+.row.user .ext {
+  order: 1;
 }
 
 .bubble {
@@ -241,52 +253,42 @@ watch(
   color: var(--accent-2);
 }
 
-/* Floating hover toolbar in the bubble's top-right corner — takes no layout
-   space, so it never thins out the visible conversation. */
-.actions {
-  position: absolute;
-  top: 5px;
-  right: 5px;
+/* A tab attached beside the bubble, matching its style, holding the fixed
+   flip/replay controls. Lives in the empty horizontal space, so it costs no
+   vertical room and never overlaps the text. */
+.ext {
+  flex-shrink: 0;
+  align-self: center;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 2px;
-  padding: 2px 3px;
-  border-radius: 9px;
-  background: var(--panel);
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--panel-2);
   border: 1px solid var(--border);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s ease;
+  color: var(--text);
 }
 
-.bubble:hover .actions,
-.actions:focus-within {
-  opacity: 1;
-  pointer-events: auto;
+.row.user .ext {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
 }
 
-.row.user .actions {
-  background: #3a56cf;
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.flip,
-.replay {
+.ext-btn {
   background: transparent;
   border: none;
   color: inherit;
   font-size: 14px;
   line-height: 1;
-  padding: 3px 5px;
-  border-radius: 6px;
+  padding: 5px 7px;
+  border-radius: 8px;
   opacity: 0.85;
 }
 
-.flip:hover,
-.replay:hover {
+.ext-btn:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .caret {
