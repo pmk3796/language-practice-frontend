@@ -1,0 +1,137 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { usePracticeStore } from '@/stores/practice'
+import { useRecorder } from '@/composables/useRecorder'
+
+const store = usePracticeStore()
+const { isRecording, isSupported, start, stop } = useRecorder()
+
+const busy = computed(() => store.status === 'processing')
+
+async function toggle() {
+  if (busy.value) return
+
+  if (isRecording.value) {
+    const { blob, filename } = await stop()
+    await store.submitRecording(blob, filename)
+  } else {
+    try {
+      await start()
+    } catch {
+      store.errorMessage = 'Microphone access was denied.'
+      store.status = 'error'
+    }
+  }
+}
+
+const label = computed(() => {
+  if (busy.value) return 'Thinking…'
+  if (isRecording.value) return 'Stop'
+  return 'Speak'
+})
+</script>
+
+<template>
+  <div class="recorder">
+    <button
+      class="mic"
+      :class="{ recording: isRecording, busy }"
+      :disabled="!isSupported || busy"
+      @click="toggle"
+    >
+      <span v-if="busy" class="spinner" />
+      <span v-else class="icon">{{ isRecording ? '■' : '🎙' }}</span>
+    </button>
+    <div class="label">{{ label }}</div>
+    <p v-if="!isSupported" class="hint danger">Recording isn't supported in this browser.</p>
+    <p v-else-if="store.status === 'error'" class="hint danger">{{ store.errorMessage }}</p>
+    <p v-else class="hint">
+      Tap, say something in
+      <strong>{{ store.activeLanguage?.name || 'your language' }}</strong>, tap again.
+    </p>
+  </div>
+</template>
+
+<style scoped>
+.recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  height: 100%;
+}
+
+.mic {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(145deg, var(--accent), #4a6bff);
+  color: white;
+  font-size: 40px;
+  box-shadow: 0 10px 30px rgba(76, 108, 255, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  display: grid;
+  place-items: center;
+}
+
+.mic:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.mic:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.mic.recording {
+  background: linear-gradient(145deg, #ff5d6c, #ff3b52);
+  box-shadow: 0 0 0 0 rgba(255, 93, 108, 0.7);
+  animation: pulse 1.4s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 93, 108, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 22px rgba(255, 93, 108, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 93, 108, 0);
+  }
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 4px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.label {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  max-width: 220px;
+}
+
+.hint.danger {
+  color: var(--danger);
+}
+</style>
