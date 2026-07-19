@@ -30,16 +30,37 @@ function formatDate(ts: number): string {
       </div>
     </header>
 
+    <!-- Page language scope: filters everything below (history now, flashcards later). -->
+    <div class="scope">
+      <button class="pill" :class="{ active: store.homeLanguage === 'all' }" @click="store.setHomeLanguage('all')">
+        🌐 All languages
+      </button>
+      <button
+        v-for="lang in store.languages"
+        :key="lang.code"
+        class="pill"
+        :class="{ active: store.homeLanguage === lang.code }"
+        @click="store.setHomeLanguage(lang.code)"
+      >
+        {{ lang.flag }} {{ lang.name }}
+      </button>
+    </div>
+
     <section class="starter">
       <h2>Start a conversation</h2>
       <div class="pickers">
         <ProfileSelector />
-        <LanguageSelector />
+        <!-- 'all' mode: pick any language. Scoped mode: language is fixed. -->
+        <LanguageSelector v-if="store.homeLanguage === 'all'" />
+        <div v-else-if="store.homeLanguageInfo" class="field locked">
+          <label>Language</label>
+          <span class="chip">{{ store.homeLanguageInfo.flag }} {{ store.homeLanguageInfo.name }}</span>
+        </div>
       </div>
-      <p v-if="store.draftProfileInfo && store.draftLanguageInfo" class="preview">
+      <p v-if="store.draftProfileInfo && store.newSessionLanguageInfo" class="preview">
         {{ store.draftProfileInfo.emoji }} You'll talk with a
         <strong>{{ store.draftProfileInfo.name }}</strong> in
-        <strong>{{ store.draftLanguageInfo.name }}</strong> — {{ store.draftProfileInfo.description }}.
+        <strong>{{ store.newSessionLanguageInfo.name }}</strong> — {{ store.draftProfileInfo.description }}.
       </p>
       <button class="start" :disabled="!store.languages.length" @click="store.startSession()">
         Start conversation →
@@ -47,12 +68,20 @@ function formatDate(ts: number): string {
     </section>
 
     <section class="history">
-      <h3>Saved conversations</h3>
-      <p v-if="!store.sortedSessions.length" class="empty">
-        No conversations yet. Start one above — each is saved here so you can review it later.
+      <h3>
+        Saved conversations
+        <span v-if="store.homeLanguageInfo" class="scoped">· {{ store.homeLanguageInfo.name }}</span>
+      </h3>
+      <p v-if="!store.filteredSessions.length" class="empty">
+        <template v-if="store.homeLanguageInfo">
+          No {{ store.homeLanguageInfo.name }} conversations yet. Start one above.
+        </template>
+        <template v-else>
+          No conversations yet. Start one above — each is saved here so you can review it later.
+        </template>
       </p>
       <ul v-else>
-        <li v-for="s in store.sortedSessions" :key="s.id" class="row">
+        <li v-for="s in store.filteredSessions" :key="s.id" class="row">
           <button class="open" @click="store.openSession(s.id)">
             <span class="emoji">{{ store.profileInfo(s.profile)?.emoji || '💬' }}</span>
             <span class="main">
@@ -82,7 +111,7 @@ function formatDate(ts: number): string {
   padding: 40px 20px 60px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
 }
 
 .brand {
@@ -101,6 +130,29 @@ function formatDate(ts: number): string {
   margin: 3px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pill {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pill:hover {
+  color: var(--text);
+}
+.pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .starter,
@@ -124,13 +176,32 @@ function formatDate(ts: number): string {
   align-items: flex-end;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.locked .chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 15px;
+}
+
 .preview {
   margin: 16px 0 0;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
 }
-
 .preview strong {
   color: var(--text);
 }
@@ -146,7 +217,6 @@ function formatDate(ts: number): string {
   font-weight: 700;
   box-shadow: 0 8px 24px rgba(76, 108, 255, 0.35);
 }
-
 .start:disabled {
   opacity: 0.5;
   cursor: default;
@@ -159,6 +229,9 @@ function formatDate(ts: number): string {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
+}
+.history h3 .scoped {
+  color: var(--accent);
 }
 
 .empty {
@@ -175,13 +248,11 @@ ul {
   flex-direction: column;
   gap: 8px;
 }
-
 .row {
   display: flex;
   align-items: stretch;
   gap: 8px;
 }
-
 .open {
   flex: 1;
   display: flex;
@@ -194,26 +265,21 @@ ul {
   padding: 12px 14px;
   color: var(--text);
 }
-
 .open:hover {
   border-color: var(--accent);
 }
-
 .emoji {
   font-size: 22px;
 }
-
 .main {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
-
 .title {
   font-weight: 600;
   font-size: 15px;
 }
-
 .sub {
   color: var(--muted);
   font-size: 12px;
@@ -221,7 +287,6 @@ ul {
   align-items: center;
   gap: 8px;
 }
-
 .tag {
   border-radius: 999px;
   padding: 1px 8px;
@@ -236,7 +301,6 @@ ul {
   background: rgba(108, 140, 255, 0.2);
   color: var(--accent);
 }
-
 .del {
   background: transparent;
   border: 1px solid var(--border);

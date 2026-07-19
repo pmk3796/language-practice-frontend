@@ -26,7 +26,12 @@ function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+// The home page is scoped to one language, or 'all'. This scope filters history
+// (and, in future, a home flashcards panel) so languages never get jumbled.
+type HomeScope = string | 'all'
+
 interface Persisted {
+  homeLanguage: HomeScope
   draftLanguage: string
   draftProfile: string
   speed: SpeechSpeed
@@ -58,6 +63,7 @@ function load(): Persisted {
     if (raw) {
       const p = JSON.parse(raw) as Partial<Persisted>
       return {
+        homeLanguage: p.homeLanguage || 'all',
         draftLanguage: p.draftLanguage || 'it',
         draftProfile: p.draftProfile || 'free',
         speed: p.speed === 'slow' ? 'slow' : 'normal',
@@ -70,6 +76,7 @@ function load(): Persisted {
     /* ignore corrupt storage */
   }
   return {
+    homeLanguage: 'all',
     draftLanguage: 'it',
     draftProfile: 'free',
     speed: 'normal',
@@ -85,6 +92,9 @@ export const usePracticeStore = defineStore('practice', () => {
   // Config (from backend)
   const languages = ref<LanguageOption[]>([])
   const profiles = ref<ProfileOption[]>([])
+
+  // Home page language scope: 'all' or a specific language code.
+  const homeLanguage = ref<HomeScope>(persisted.homeLanguage)
 
   // Lobby draft selection (what a new session will be created with)
   const draftLanguage = ref(persisted.draftLanguage)
@@ -134,6 +144,23 @@ export const usePracticeStore = defineStore('practice', () => {
 
   const sortedSessions = computed(() => [...sessions].sort((a, b) => b.createdAt - a.createdAt))
 
+  // Home page is scoped by homeLanguage; 'all' shows everything.
+  const filteredSessions = computed(() =>
+    homeLanguage.value === 'all'
+      ? sortedSessions.value
+      : sortedSessions.value.filter((s) => s.language === homeLanguage.value),
+  )
+  const homeLanguageInfo = computed(() =>
+    homeLanguage.value === 'all' ? null : languages.value.find((l) => l.code === homeLanguage.value),
+  )
+  // The language a new conversation will use: the scoped one, or the draft pick in 'all' mode.
+  const newSessionLanguage = computed(() =>
+    homeLanguage.value === 'all' ? draftLanguage.value : homeLanguage.value,
+  )
+  const newSessionLanguageInfo = computed(() =>
+    languages.value.find((l) => l.code === newSessionLanguage.value),
+  )
+
   function languageInfo(code: string) {
     return languages.value.find((l) => l.code === code)
   }
@@ -143,7 +170,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ----------------------------------------------------------
   watch(
-    [draftLanguage, draftProfile, speed, activeSessionId, sessions, flashcardsByLang],
+    [homeLanguage, draftLanguage, draftProfile, speed, activeSessionId, sessions, flashcardsByLang],
     () => {
       // Strip volatile fields (blob URLs, pending flags) that don't survive reload.
       const cleanSessions = sessions.map((s) => ({
@@ -153,6 +180,7 @@ export const usePracticeStore = defineStore('practice', () => {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
+          homeLanguage: homeLanguage.value,
           draftLanguage: draftLanguage.value,
           draftProfile: draftProfile.value,
           speed: speed.value,
@@ -170,6 +198,10 @@ export const usePracticeStore = defineStore('practice', () => {
     const res = await fetchLanguages()
     languages.value = res.languages
     if (!res.languages.some((l) => l.code === draftLanguage.value)) draftLanguage.value = res.default
+    // Reset the home scope if it points at a language that no longer exists.
+    if (homeLanguage.value !== 'all' && !res.languages.some((l) => l.code === homeLanguage.value)) {
+      homeLanguage.value = 'all'
+    }
   }
   async function loadProfiles() {
     const res = await fetchProfiles()
@@ -178,6 +210,9 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   // --- Lobby / session lifecycle -------------------------------------------
+  function setHomeLanguage(scope: HomeScope) {
+    homeLanguage.value = scope
+  }
   function setDraftLanguage(code: string) {
     draftLanguage.value = code
   }
@@ -191,7 +226,7 @@ export const usePracticeStore = defineStore('practice', () => {
   function startSession() {
     const session: Session = {
       id: uid(),
-      language: draftLanguage.value,
+      language: newSessionLanguage.value,
       profile: draftProfile.value,
       createdAt: Date.now(),
       endedAt: null,
@@ -371,6 +406,12 @@ export const usePracticeStore = defineStore('practice', () => {
     // config
     languages,
     profiles,
+    // home scope
+    homeLanguage,
+    homeLanguageInfo,
+    filteredSessions,
+    newSessionLanguage,
+    newSessionLanguageInfo,
     // lobby draft
     draftLanguage,
     draftProfile,
@@ -404,6 +445,7 @@ export const usePracticeStore = defineStore('practice', () => {
     // actions
     loadLanguages,
     loadProfiles,
+    setHomeLanguage,
     setDraftLanguage,
     setDraftProfile,
     setSpeed,
