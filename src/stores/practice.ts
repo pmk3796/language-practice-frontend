@@ -153,6 +153,10 @@ export const usePracticeStore = defineStore('practice', () => {
   const homeLanguageInfo = computed(() =>
     homeLanguage.value === 'all' ? null : languages.value.find((l) => l.code === homeLanguage.value),
   )
+  // Only languages you've actually had a conversation in — for the home filter pills.
+  const practisedLanguages = computed(() =>
+    languages.value.filter((l) => sessions.some((s) => s.language === l.code)),
+  )
   // The language a new conversation will use: the scoped one, or the draft pick in 'all' mode.
   const newSessionLanguage = computed(() =>
     homeLanguage.value === 'all' ? draftLanguage.value : homeLanguage.value,
@@ -260,6 +264,10 @@ export const usePracticeStore = defineStore('practice', () => {
     const i = sessions.findIndex((s) => s.id === id)
     if (i >= 0) sessions.splice(i, 1)
     if (activeSessionId.value === id) activeSessionId.value = null
+    // If that was the last conversation in the scoped language, drop back to 'all'.
+    if (homeLanguage.value !== 'all' && !sessions.some((s) => s.language === homeLanguage.value)) {
+      homeLanguage.value = 'all'
+    }
   }
 
   /** End the active session: generate a recap and archive it (read-only). */
@@ -409,6 +417,7 @@ export const usePracticeStore = defineStore('practice', () => {
     // home scope
     homeLanguage,
     homeLanguageInfo,
+    practisedLanguages,
     filteredSessions,
     newSessionLanguage,
     newSessionLanguageInfo,

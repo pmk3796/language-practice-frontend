@@ -30,13 +30,14 @@ function formatDate(ts: number): string {
       </div>
     </header>
 
-    <!-- Page language scope: filters everything below (history now, flashcards later). -->
-    <div class="scope">
+    <!-- Page language scope: only languages you've actually practised. Filters
+         everything below (history now, flashcards later). -->
+    <div v-if="store.practisedLanguages.length" class="scope">
       <button class="pill" :class="{ active: store.homeLanguage === 'all' }" @click="store.setHomeLanguage('all')">
         🌐 All languages
       </button>
       <button
-        v-for="lang in store.languages"
+        v-for="lang in store.practisedLanguages"
         :key="lang.code"
         class="pill"
         :class="{ active: store.homeLanguage === lang.code }"
