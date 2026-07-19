@@ -84,7 +84,11 @@ watch(
                 :title="isSaved(word) ? 'Remove from flashcards' : 'Add to flashcards'"
                 @click.stop="toggleFlashcard(word)"
               >
-                {{ isSaved(word) ? '✓' : '+' }}
+                <span v-if="!isSaved(word)" class="glyph">+</span>
+                <template v-else>
+                  <span class="glyph check">✓</span>
+                  <span class="glyph cross">✕</span>
+                </template>
               </button>
             </span>
             <span v-if="message.pending" class="caret">▍</span>
@@ -202,14 +206,14 @@ watch(
 
 .add-chip {
   position: absolute;
-  top: -8px;
-  right: -6px;
-  width: 15px;
-  height: 15px;
+  top: -9px;
+  right: -7px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   border: none;
   padding: 0;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   display: none;
   align-items: center;
@@ -218,24 +222,63 @@ watch(
      blue user bubble (which is the same colour as --accent). */
   background: #fff;
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-/* Show the ＋ on hover, but keep a ✓ visible for words already saved. */
+/* Unsaved: reveal the ＋ when hovering the word. */
 .word:hover .add-chip {
   display: inline-flex;
 }
 
-.add-chip.saved {
-  display: inline-flex;
-  background: var(--accent-2);
-  color: #0f1220;
+.add-chip:hover {
+  transform: scale(1.18);
 }
 
-.add-chip:hover {
-  filter: brightness(1.12);
+/* Saved: a glossy green badge, always visible, that pops in when you save. */
+.add-chip.saved {
+  display: inline-flex;
+  background: linear-gradient(145deg, #62e3b0, #37bd85);
+  color: #06271b;
+  box-shadow: 0 2px 7px rgba(74, 214, 160, 0.55);
+  animation: chip-pop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Hovering a saved badge turns it red and swaps ✓ -> ✕ to signal removal. */
+.add-chip.saved:hover {
+  background: linear-gradient(145deg, #ff7a86, #ff4d5e);
+  color: #fff;
+  box-shadow: 0 2px 9px rgba(255, 77, 94, 0.6);
+}
+
+.add-chip .glyph {
+  display: inline-flex;
+}
+.add-chip.saved .cross {
+  display: none;
+}
+.add-chip.saved:hover .check {
+  display: none;
+}
+.add-chip.saved:hover .cross {
+  display: inline-flex;
+}
+
+@keyframes chip-pop {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .word.flipped {
