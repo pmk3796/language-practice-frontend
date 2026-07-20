@@ -175,11 +175,16 @@ function formatDate(ts: number): string {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: 1.15fr 1fr;
   grid-template-rows: minmax(0, 1fr);
   gap: 18px;
 }
+/* Saved conversations on the left, flashcards on the right. */
+.history {
+  order: 1;
+}
 .flashcards {
+  order: 2;
   align-self: start;
 }
 .history {
