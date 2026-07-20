@@ -377,6 +377,12 @@ function formatDate(ts: number): string {
   cursor: default;
 }
 
+.starter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .starter h2 {
   margin: 0 0 16px;
   font-size: 18px;
@@ -387,6 +393,7 @@ function formatDate(ts: number): string {
   gap: 22px;
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: center;
 }
 
 .field {
@@ -414,6 +421,8 @@ function formatDate(ts: number): string {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+  text-align: center;
+  max-width: 640px;
 }
 .preview strong {
   color: var(--text);
@@ -421,6 +430,7 @@ function formatDate(ts: number): string {
 
 .start {
   margin-top: 18px;
+  align-self: center;
   background: linear-gradient(145deg, var(--accent), #4a6bff);
   color: #fff;
   border: none;
