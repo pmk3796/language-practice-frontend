@@ -252,6 +252,17 @@ watch(
   background: rgba(255, 255, 255, 0.28);
 }
 
+/* Green clashes with the blue bubble: flip reads via a light highlight (white
+   text), and the saved underline switches to a warm amber that suits the blue. */
+.row.user .word.flipped {
+  background: rgba(255, 255, 255, 0.26);
+  color: #fff;
+}
+
+.row.user .word.saved .tok-core {
+  text-decoration-color: var(--warn);
+}
+
 .add-chip {
   position: absolute;
   top: -9px;
