@@ -94,25 +94,28 @@ function formatDate(ts: number): string {
         </div>
       </template>
 
-      <!-- All languages: one row per deck. -->
+      <!-- All languages: a compact grid of deck cards (the whole card reviews). -->
       <template v-else>
-        <ul>
-          <li v-for="lang in store.languagesWithDecks" :key="lang.code" class="deck-row">
-            <div class="deck-lang">
+        <div class="deck-grid">
+          <button
+            v-for="lang in store.languagesWithDecks"
+            :key="lang.code"
+            class="deck-card"
+            @click="store.startReview(lang.code)"
+          >
+            <div class="deck-head">
               <span class="flag">{{ lang.flag }}</span>
-              <div class="deck-info">
-                <span class="deck-name">{{ lang.name }}</span>
-                <span class="deck-sub">
-                  {{ store.deckStats(lang.code).total }} cards
-                  <span v-if="store.deckStats(lang.code).needsPractice" class="deck-need">
-                    · 🎯 {{ store.deckStats(lang.code).needsPractice }} need practice
-                  </span>
-                </span>
-              </div>
+              <span class="deck-name">{{ lang.name }}</span>
             </div>
-            <button class="review-btn" @click="store.startReview(lang.code)">Review →</button>
-          </li>
-        </ul>
+            <div class="deck-stats">
+              <span>{{ store.deckStats(lang.code).total }} cards</span>
+              <span v-if="store.deckStats(lang.code).needsPractice" class="deck-need">
+                🎯 {{ store.deckStats(lang.code).needsPractice }}
+              </span>
+            </div>
+            <span class="review-cue">Review →</span>
+          </button>
+        </div>
       </template>
     </section>
 
@@ -221,13 +224,47 @@ function formatDate(ts: number): string {
   letter-spacing: 0.08em;
   color: var(--muted);
 }
-.flashcards ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.deck-card {
+  text-align: left;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.08s ease;
+}
+.deck-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.deck-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deck-head .flag {
+  font-size: 22px;
+}
+.deck-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.review-cue {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
 }
 .deck-row {
   display: flex;
