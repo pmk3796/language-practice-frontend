@@ -47,7 +47,8 @@ function formatDate(ts: number): string {
       </button>
     </div>
 
-    <section class="starter">
+    <div class="columns">
+      <section class="starter">
       <h2>Start a conversation</h2>
       <div class="pickers">
         <ProfileSelector />
@@ -66,13 +67,14 @@ function formatDate(ts: number): string {
       <button class="start" :disabled="!store.languages.length" @click="store.startSession()">
         Start conversation →
       </button>
-    </section>
+      </section>
 
-    <!-- Flashcards: scoped to the selected language, or a per-language list. -->
-    <section
-      v-if="store.languagesWithDecks.length"
-      class="flashcards"
-    >
+      <div class="right">
+      <!-- Flashcards: scoped to the selected language, or a per-language list. -->
+      <section
+        v-if="store.languagesWithDecks.length"
+        class="flashcards"
+      >
       <h3>Flashcards</h3>
 
       <!-- Specific language scope: that deck's summary + review. -->
@@ -152,18 +154,66 @@ function formatDate(ts: number): string {
           <button class="del" title="Delete" @click="store.deleteSession(s.id)">✕</button>
         </li>
       </ul>
-    </section>
+      </section>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .lobby {
-  max-width: 720px;
+  height: 100vh;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 40px 20px 60px;
+  padding: 26px 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+}
+
+/* Start card on the left; flashcards + history stacked on the right. Fills the
+   viewport so the page doesn't grow — the history list scrolls inside its card. */
+.columns {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+}
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+}
+.starter {
+  align-self: start;
+}
+.history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.history ul {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-width: 860px) {
+  .lobby {
+    height: auto;
+  }
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .history {
+    flex: initial;
+  }
+  .history ul {
+    overflow: visible;
+  }
 }
 
 .brand {
