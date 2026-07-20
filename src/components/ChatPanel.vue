@@ -1,10 +1,36 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref, watch } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
+import { fetchSpeech } from '@/api/client'
 import { playAudio } from '@/lib/audio'
 import type { ChatMessage, WordPair } from '@/types'
 
 const store = usePracticeStore()
+
+// Which message is currently (re)generating its audio.
+const replayingId = ref<string | null>(null)
+
+// Replay a message's audio. Uses the live blob URL if present; otherwise
+// regenerates it on demand — so replay keeps working after a refresh, when the
+// original blob URL is gone.
+async function replay(message: ChatMessage) {
+  if (message.audioUrl) {
+    playAudio(message.audioUrl)
+    return
+  }
+  const code = store.activeLanguage?.code
+  if (!code || replayingId.value) return
+  replayingId.value = message.id
+  try {
+    const url = await fetchSpeech(message.text, code, store.speed)
+    message.audioUrl = url // cache on the message for the rest of this session
+    playAudio(url)
+  } catch {
+    /* ignore a failed replay */
+  } finally {
+    replayingId.value = null
+  }
+}
 
 // Flip an entire message at once: if every word is already showing English,
 // flip them all back to the target language; otherwise flip them all to English.
@@ -114,7 +140,7 @@ watch(
         <!-- A tab attached to the end of the bubble (in the empty horizontal
              space) with a fixed sentence-flip toggle. -->
         <div
-          v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.audioUrl)"
+          v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.text && !message.pending)"
           class="ext"
         >
           <button
@@ -126,12 +152,14 @@ watch(
             ⇄
           </button>
           <button
-            v-if="message.role === 'assistant' && message.audioUrl"
+            v-if="message.role === 'assistant' && message.text && !message.pending"
             class="ext-btn"
+            :disabled="replayingId === message.id"
             title="Replay"
-            @click="playAudio(message.audioUrl!)"
+            @click="replay(message)"
           >
-            🔊
+            <span v-if="replayingId === message.id" class="spinner" />
+            <span v-else>🔊</span>
           </button>
         </div>
       </div>
@@ -308,9 +336,29 @@ watch(
   opacity: 0.85;
 }
 
-.ext-btn:hover {
+.ext-btn:hover:not(:disabled) {
   opacity: 1;
   background: rgba(255, 255, 255, 0.16);
+}
+
+.ext-btn:disabled {
+  cursor: default;
+}
+
+.ext-btn .spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: ext-spin 0.7s linear infinite;
+}
+
+@keyframes ext-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .caret {
