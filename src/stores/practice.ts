@@ -124,14 +124,14 @@ export const usePracticeStore = defineStore('practice', () => {
   const activeSessionId = ref<string | null>(persisted.activeSessionId)
   const flashcardsByLang = reactive<Record<string, Flashcard[]>>(persisted.flashcards)
 
-  // One-time cleanup: strip punctuation from existing cards and drop duplicates
-  // that differ only by punctuation/case (e.g. a stray "lima," next to "lima").
+  // One-time cleanup: strip punctuation from existing cards and keep one card
+  // per foreign word (dropping punctuation/case/gloss duplicates).
   for (const code of Object.keys(flashcardsByLang)) {
     const seen = new Set<string>()
     flashcardsByLang[code] = flashcardsByLang[code].filter((c) => {
       c.target = cleanWord(c.target)
       c.english = cleanWord(c.english)
-      const key = `${c.target.toLowerCase()}|${c.english.toLowerCase()}`
+      const key = c.target.toLowerCase()
       if (!c.target || seen.has(key)) return false
       seen.add(key)
       return true
@@ -420,26 +420,24 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   // --- Flashcards (per language deck) ---------------------------------------
-  // Words are matched with surrounding punctuation stripped, so "lima" and
-  // "lima," are the same card — and a word shows as saved wherever it appears,
-  // regardless of the punctuation it happened to carry.
-  function findFlashcard(target: string, english: string): Flashcard | undefined {
+  // A word is matched by its foreign form only (punctuation/case-insensitive).
+  // The English gloss varies by context ("certo" = "sure" / "of course"), but
+  // it's the same vocabulary word — so it's one card, and it shows as saved
+  // wherever the word appears regardless of that turn's translation.
+  function findFlashcard(target: string): Flashcard | undefined {
     const tk = wordKey(target)
-    const ek = wordKey(english)
-    return ensureDeck(activeLangCode.value).find(
-      (c) => wordKey(c.target) === tk && wordKey(c.english) === ek,
-    )
+    return ensureDeck(activeLangCode.value).find((c) => wordKey(c.target) === tk)
   }
 
-  function isFlashcardSaved(target: string, english: string): boolean {
-    return !!findFlashcard(target, english)
+  function isFlashcardSaved(target: string): boolean {
+    return !!findFlashcard(target)
   }
 
   function addFlashcard(target: string, english: string) {
     const t = cleanWord(target)
     const e = cleanWord(english)
     if (!t) return
-    if (findFlashcard(t, e)) return
+    if (findFlashcard(t)) return
     ensureDeck(activeLangCode.value).push({
       id: uid(),
       target: t,
@@ -450,7 +448,7 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   function toggleFlashcard(target: string, english: string) {
-    const existing = findFlashcard(target, english)
+    const existing = findFlashcard(target)
     if (existing) removeFlashcard(existing.id)
     else addFlashcard(target, english)
   }

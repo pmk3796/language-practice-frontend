@@ -8,7 +8,7 @@ const store = usePracticeStore()
 const recap = computed(() => store.activeSession?.recap ?? null)
 
 function isSaved(w: WordPair): boolean {
-  return store.isFlashcardSaved(w.target, w.english)
+  return store.isFlashcardSaved(w.target)
 }
 
 function toggleWord(w: WordPair) {

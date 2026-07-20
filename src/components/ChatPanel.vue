@@ -42,9 +42,10 @@ function flipMessage(message: ChatMessage) {
   })
 }
 
-// Saving/matching is punctuation-insensitive — handled centrally in the store.
+// Saving/matching is by the foreign word (punctuation/case-insensitive) —
+// handled centrally in the store.
 function isSaved(word: WordPair): boolean {
-  return store.isFlashcardSaved(word.target, word.english)
+  return store.isFlashcardSaved(word.target)
 }
 
 // ＋ adds the word to flashcards; ✓ (already saved) removes it.
@@ -244,6 +245,11 @@ watch(
 
 .word:hover {
   background: rgba(108, 140, 255, 0.25);
+}
+
+/* Your bubble is blue, so the blue hover is invisible there — use a light tint. */
+.row.user .word:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .add-chip {

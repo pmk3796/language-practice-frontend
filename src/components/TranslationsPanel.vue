@@ -53,11 +53,11 @@ async function speak(t: TranslationEntry) {
             </button>
             <button
               class="icon add"
-              :class="{ saved: store.isFlashcardSaved(t.target, t.english) }"
-              :title="store.isFlashcardSaved(t.target, t.english) ? 'Remove from flashcards' : 'Add to flashcards'"
+              :class="{ saved: store.isFlashcardSaved(t.target) }"
+              :title="store.isFlashcardSaved(t.target) ? 'Remove from flashcards' : 'Add to flashcards'"
               @click="store.toggleFlashcard(t.target, t.english)"
             >
-              {{ store.isFlashcardSaved(t.target, t.english) ? '✓' : '＋' }}
+              {{ store.isFlashcardSaved(t.target) ? '✓' : '＋' }}
             </button>
           </div>
         </li>
