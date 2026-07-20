@@ -307,32 +307,42 @@ watch(
 }
 
 /* Actions pinned inside the bubble on a fixed side, stacked vertically so they
-   stay put regardless of the message length or a flip reflowing the text. */
+   stay put regardless of the message length or a flip reflowing the text. A
+   faint separator divides them from the text. */
 .msg-actions {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding-right: 9px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* You: actions are on the right, so the separator flips to their left. */
+.row.user .msg-actions {
+  padding-right: 0;
+  border-right: none;
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .act-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
   color: inherit;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
-  opacity: 0.7;
 }
 
 .act-btn:hover:not(:disabled) {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .act-btn:disabled {
