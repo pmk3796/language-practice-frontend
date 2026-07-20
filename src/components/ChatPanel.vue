@@ -103,6 +103,33 @@ watch(
 
       <div v-for="message in store.messages" :key="message.id" class="row" :class="message.role">
         <div class="bubble">
+          <!-- Actions pinned to a fixed side of the box (left for the assistant,
+               right for you) so the flip button doesn't move when the text
+               reflows on flip. -->
+          <div
+            v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.text && !message.pending)"
+            class="msg-actions"
+          >
+            <button
+              v-if="message.words && message.words.length && !message.pending"
+              class="act-btn"
+              title="Translate the whole sentence"
+              @click="flipMessage(message)"
+            >
+              ⇄
+            </button>
+            <button
+              v-if="message.role === 'assistant' && message.text && !message.pending"
+              class="act-btn"
+              :disabled="replayingId === message.id"
+              title="Replay"
+              @click="replay(message)"
+            >
+              <span v-if="replayingId === message.id" class="spinner" />
+              <span v-else>🔊</span>
+            </button>
+          </div>
+
           <!-- Messages with a word breakdown render word-by-word, so each word
                can be tapped to reveal its English translation or saved (＋). This
                applies to both the assistant's replies and your own messages. -->
@@ -136,32 +163,6 @@ watch(
           </template>
           </div>
         </div>
-
-        <!-- A tab attached to the end of the bubble (in the empty horizontal
-             space) with a fixed sentence-flip toggle. -->
-        <div
-          v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.text && !message.pending)"
-          class="ext"
-        >
-          <button
-            v-if="message.words && message.words.length && !message.pending"
-            class="ext-btn"
-            title="Translate the whole sentence"
-            @click="flipMessage(message)"
-          >
-            ⇄
-          </button>
-          <button
-            v-if="message.role === 'assistant' && message.text && !message.pending"
-            class="ext-btn"
-            :disabled="replayingId === message.id"
-            title="Replay"
-            @click="replay(message)"
-          >
-            <span v-if="replayingId === message.id" class="spinner" />
-            <span v-else>🔊</span>
-          </button>
-        </div>
       </div>
     </div>
     <p class="tip">
@@ -193,29 +194,31 @@ watch(
 
 .row {
   display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .row.user {
   justify-content: flex-end;
 }
 
-/* On your (right-aligned) messages, the tab sits to the LEFT of the bubble. */
-.row.user .bubble {
-  order: 2;
-}
-.row.user .ext {
-  order: 1;
-}
-
 .bubble {
   max-width: 78%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 14px;
   line-height: 1.55;
   font-size: 16px;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Assistant: actions on the left; you: actions on the right. */
+.row.user .bubble {
+  flex-direction: row-reverse;
+}
+
+.content {
+  min-width: 0;
 }
 
 .row.user .bubble {
@@ -303,50 +306,49 @@ watch(
   text-decoration-skip-ink: none;
 }
 
-/* A compact, subtle pill in the gutter beside the bubble holding the fixed
-   flip/replay controls. Horizontal so it stays short (a single line's height),
-   and vertically centred so it looks right next to tall multiline bubbles. */
-.ext {
+/* Actions pinned inside the bubble on a fixed side, stacked vertically so they
+   stay put regardless of the message length or a flip reflowing the text. */
+.msg-actions {
   flex-shrink: 0;
-  align-self: center;
   display: flex;
+  flex-direction: column;
   gap: 2px;
-  padding: 3px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--muted);
 }
 
-.ext-btn {
+.act-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   background: transparent;
   border: none;
+  border-radius: 6px;
   color: inherit;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
-  padding: 4px 6px;
-  border-radius: 7px;
+  opacity: 0.7;
 }
 
-.ext-btn:hover:not(:disabled) {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.12);
+.act-btn:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.ext-btn:disabled {
+.act-btn:disabled {
   cursor: default;
 }
 
-.ext-btn .spinner {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
+.act-btn .spinner {
+  width: 12px;
+  height: 12px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: currentColor;
   border-radius: 50%;
-  animation: ext-spin 0.7s linear infinite;
+  animation: act-spin 0.7s linear infinite;
 }
 
-@keyframes ext-spin {
+@keyframes act-spin {
   to {
     transform: rotate(360deg);
   }
