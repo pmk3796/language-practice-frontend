@@ -1,0 +1,479 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { usePracticeStore } from '@/stores/practice'
+import { fetchSpeech } from '@/api/client'
+import { playAudio } from '@/lib/audio'
+import type { Flashcard } from '@/types'
+
+const store = usePracticeStore()
+
+const langInfo = computed(() => store.languageInfo(store.reviewLanguage || ''))
+
+// --- Filters ---------------------------------------------------------------
+const needsPracticeOnly = ref(false)
+const selectedTopics = ref<string[]>([])
+const selectedPos = ref<string[]>([])
+const sortBy = ref<'struggling' | 'recent' | 'stale'>('struggling')
+
+const availableTopics = computed(() =>
+  [...new Set(store.reviewDeck.map((c) => c.topic).filter(Boolean) as string[])].sort(),
+)
+const availablePos = computed(
+  () => [...new Set(store.reviewDeck.map((c) => c.partOfSpeech).filter(Boolean) as string[])],
+)
+
+function toggle(list: string[], value: string) {
+  const i = list.indexOf(value)
+  if (i >= 0) list.splice(i, 1)
+  else list.push(value)
+}
+
+const filtered = computed<Flashcard[]>(() => {
+  let cards = [...store.reviewDeck]
+  if (needsPracticeOnly.value) cards = cards.filter(store.needsPractice)
+  if (selectedTopics.value.length)
+    cards = cards.filter((c) => c.topic && selectedTopics.value.includes(c.topic))
+  if (selectedPos.value.length)
+    cards = cards.filter((c) => c.partOfSpeech && selectedPos.value.includes(c.partOfSpeech))
+
+  if (sortBy.value === 'recent') cards.sort((a, b) => b.createdAt - a.createdAt)
+  else if (sortBy.value === 'stale')
+    cards.sort((a, b) => (a.lastReviewedAt ?? 0) - (b.lastReviewedAt ?? 0))
+  else cards.sort((a, b) => (a.box ?? 1) - (b.box ?? 1)) // struggling first
+  return cards
+})
+
+// --- Run state -------------------------------------------------------------
+type Phase = 'setup' | 'running' | 'done'
+const phase = ref<Phase>('setup')
+const queue = ref<Flashcard[]>([])
+const index = ref(0)
+const revealed = ref(false)
+const gotIt = ref(0)
+const again = ref(0)
+
+const current = computed(() => queue.value[index.value])
+
+function start() {
+  if (!filtered.value.length) return
+  queue.value = filtered.value.slice()
+  index.value = 0
+  revealed.value = false
+  gotIt.value = 0
+  again.value = 0
+  phase.value = 'running'
+}
+
+function grade(known: boolean) {
+  const card = current.value
+  const code = store.reviewLanguage
+  if (!card || !code) return
+  store.gradeCard(code, card.id, known)
+  known ? gotIt.value++ : again.value++
+  revealed.value = false
+  if (index.value + 1 >= queue.value.length) phase.value = 'done'
+  else index.value++
+}
+
+// --- Audio -----------------------------------------------------------------
+const speaking = ref(false)
+async function speak(text: string) {
+  const code = store.reviewLanguage
+  if (!code || speaking.value) return
+  speaking.value = true
+  try {
+    playAudio(await fetchSpeech(text, code, store.speed))
+  } catch {
+    /* ignore */
+  } finally {
+    speaking.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="review">
+    <header class="topbar">
+      <button class="back" @click="store.exitReview()">← Home</button>
+      <div class="title">
+        <span class="flag">{{ langInfo?.flag }}</span>
+        {{ langInfo?.name }} flashcards
+        <span class="count">{{ store.reviewDeck.length }} cards</span>
+      </div>
+      <div class="tagging" v-if="store.tagging">Categorising…</div>
+    </header>
+
+    <!-- SETUP: pick filters -->
+    <section v-if="phase === 'setup'" class="setup">
+      <div class="filters">
+        <div class="filter-group">
+          <span class="flabel">Focus</span>
+          <div class="chips">
+            <button class="chip" :class="{ on: needsPracticeOnly }" @click="needsPracticeOnly = !needsPracticeOnly">
+              🎯 Needs practice
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="flabel">Order</span>
+          <div class="chips">
+            <button class="chip" :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Struggling first</button>
+            <button class="chip" :class="{ on: sortBy === 'recent' }" @click="sortBy = 'recent'">Recently added</button>
+            <button class="chip" :class="{ on: sortBy === 'stale' }" @click="sortBy = 'stale'">Not reviewed lately</button>
+          </div>
+        </div>
+
+        <div class="filter-group" v-if="availableTopics.length">
+          <span class="flabel">Category</span>
+          <div class="chips">
+            <button
+              v-for="t in availableTopics"
+              :key="t"
+              class="chip"
+              :class="{ on: selectedTopics.includes(t) }"
+              @click="toggle(selectedTopics, t)"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-group" v-if="availablePos.length">
+          <span class="flabel">Part of speech</span>
+          <div class="chips">
+            <button
+              v-for="p in availablePos"
+              :key="p"
+              class="chip"
+              :class="{ on: selectedPos.includes(p) }"
+              @click="toggle(selectedPos, p)"
+            >
+              {{ p }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="store.tagging && !availableTopics.length" class="hint">
+          Categories will appear once the AI finishes tagging your cards…
+        </p>
+      </div>
+
+      <button class="start" :disabled="!filtered.length" @click="start">
+        Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →
+      </button>
+    </section>
+
+    <!-- RUNNING: one card at a time -->
+    <section v-else-if="phase === 'running' && current" class="runner">
+      <div class="progress">{{ index + 1 }} / {{ queue.length }}</div>
+
+      <div class="card" :class="{ revealed }" @click="revealed = !revealed">
+        <button class="say" title="Pronounce" :disabled="speaking" @click.stop="speak(current.target)">
+          <span v-if="speaking" class="spinner" />
+          <span v-else>🔊</span>
+        </button>
+        <div class="front">{{ current.target }}</div>
+        <div v-if="revealed" class="back">
+          <div class="en">{{ current.english }}</div>
+          <div class="meta">
+            <span v-if="current.topic" class="tag">{{ current.topic }}</span>
+            <span v-if="current.partOfSpeech" class="tag pos">{{ current.partOfSpeech }}</span>
+          </div>
+        </div>
+        <div v-else class="flip-hint">tap to reveal</div>
+      </div>
+
+      <div v-if="revealed" class="grade">
+        <button class="again" @click="grade(false)">Again</button>
+        <button class="known" @click="grade(true)">Got it</button>
+      </div>
+      <div v-else class="grade-placeholder" />
+    </section>
+
+    <!-- DONE: summary -->
+    <section v-else-if="phase === 'done'" class="done">
+      <div class="done-emoji">🎉</div>
+      <h2>Nice work!</h2>
+      <p>You reviewed {{ queue.length }} card{{ queue.length === 1 ? '' : 's' }} — {{ gotIt }} got it, {{ again }} to revisit.</p>
+      <div class="done-actions">
+        <button class="secondary" @click="phase = 'setup'">Change filters</button>
+        <button class="start" @click="store.exitReview()">Done</button>
+      </div>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.review {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 18px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.back {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+.back:hover {
+  border-color: var(--accent);
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.flag {
+  font-size: 20px;
+}
+.count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.tagging {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Setup */
+.setup {
+  flex: 1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+}
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.flabel {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 14px;
+}
+.chip:hover {
+  color: var(--text);
+}
+.chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+.start {
+  align-self: flex-start;
+  background: linear-gradient(145deg, var(--accent), #4a6bff);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 22px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(76, 108, 255, 0.35);
+}
+.start:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Runner */
+.runner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.progress {
+  color: var(--muted);
+  font-size: 14px;
+}
+.card {
+  position: relative;
+  width: min(560px, 92vw);
+  min-height: 240px;
+  background: linear-gradient(160deg, var(--panel-2), #2a3050);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  padding: 30px;
+}
+.say {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.say:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+.front {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--accent-2);
+  text-align: center;
+}
+.back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.en {
+  font-size: 22px;
+}
+.meta {
+  display: flex;
+  gap: 8px;
+}
+.tag {
+  background: rgba(108, 140, 255, 0.18);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tag.pos {
+  background: rgba(74, 214, 160, 0.16);
+  color: var(--accent-2);
+}
+.flip-hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+.grade {
+  display: flex;
+  gap: 12px;
+  width: min(560px, 92vw);
+}
+.grade button {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 16px;
+}
+.again {
+  background: rgba(255, 93, 108, 0.18);
+  color: var(--danger);
+}
+.known {
+  background: rgba(74, 214, 160, 0.18);
+  color: var(--accent-2);
+}
+.grade-placeholder {
+  height: 52px;
+}
+.spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Done */
+.done {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+.done-emoji {
+  font-size: 48px;
+}
+.done h2 {
+  margin: 0;
+}
+.done p {
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.done-actions {
+  display: flex;
+  gap: 12px;
+}
+.secondary {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+}
+.secondary:hover {
+  border-color: var(--accent);
+}
+</style>

@@ -11,6 +11,7 @@ import {
   fetchLanguages,
   fetchProfiles,
   requestRecap,
+  requestTags,
   streamConversation,
   type HistoryTurn,
 } from '@/api/client'
@@ -143,6 +144,10 @@ export const usePracticeStore = defineStore('practice', () => {
   const recapLoading = ref(false)
   const recapError = ref('')
 
+  // Flashcard review: which language deck we're reviewing (null = not reviewing)
+  const reviewLanguage = ref<string | null>(null)
+  const tagging = ref(false)
+
   // --- Computed views -------------------------------------------------------
   const activeSession = computed(() => sessions.find((s) => s.id === activeSessionId.value) || null)
   const isArchived = computed(() => !!activeSession.value?.endedAt)
@@ -160,6 +165,30 @@ export const usePracticeStore = defineStore('practice', () => {
     return flashcardsByLang[lang]
   }
   const flashcards = computed(() => ensureDeck(activeLangCode.value))
+
+  // The deck currently under review (its own language, independent of sessions).
+  const reviewDeck = computed(() =>
+    reviewLanguage.value ? ensureDeck(reviewLanguage.value) : [],
+  )
+
+  // A card "needs practice" if it's struggling (low Leitner box) or recently missed.
+  function needsPractice(c: Flashcard): boolean {
+    return (c.box ?? 1) <= 2 || (c.wrongCount ?? 0) > 0
+  }
+
+  // Summary shown on the home flashcards card.
+  function deckStats(lang: string) {
+    const deck = flashcardsByLang[lang] ?? []
+    return {
+      total: deck.length,
+      needsPractice: deck.filter(needsPractice).length,
+    }
+  }
+
+  // Languages that actually have saved cards (for the home flashcards list).
+  const languagesWithDecks = computed(() =>
+    languages.value.filter((l) => (flashcardsByLang[l.code]?.length ?? 0) > 0),
+  )
 
   // Info objects (named activeLanguage/activeProfile so existing panels keep working)
   const activeLanguage = computed(() => languages.value.find((l) => l.code === activeLangCode.value))
@@ -459,10 +488,58 @@ export const usePracticeStore = defineStore('practice', () => {
     if (i >= 0) deck.splice(i, 1)
   }
 
-  function reviewFlashcard(id: string, known: boolean) {
-    const card = ensureDeck(activeLangCode.value).find((c) => c.id === id)
+  // Grade a card during review: update the Leitner box + behavioral metadata.
+  function gradeCard(lang: string, id: string, known: boolean) {
+    const card = ensureDeck(lang).find((c) => c.id === id)
     if (!card) return
-    card.box = known ? Math.min(card.box + 1, 5) : 1
+    card.reviewCount = (card.reviewCount ?? 0) + 1
+    card.lastReviewedAt = Date.now()
+    if (known) {
+      card.box = Math.min((card.box ?? 1) + 1, 5)
+    } else {
+      card.box = 1
+      card.wrongCount = (card.wrongCount ?? 0) + 1
+    }
+  }
+
+  // Kept for the in-session flashcards panel (operates on the session's deck).
+  function reviewFlashcard(id: string, known: boolean) {
+    gradeCard(activeLangCode.value, id, known)
+  }
+
+  // --- Review lifecycle -----------------------------------------------------
+  function startReview(lang: string) {
+    reviewLanguage.value = lang
+    tagDeck(lang) // categorise any untagged cards in the background
+  }
+
+  function exitReview() {
+    reviewLanguage.value = null
+  }
+
+  // Lazy, batched AI categorisation of a deck's untagged cards.
+  async function tagDeck(lang: string) {
+    const deck = ensureDeck(lang)
+    const untagged = deck.filter((c) => !c.tagged)
+    if (!untagged.length || tagging.value) return
+    tagging.value = true
+    try {
+      const tags = await requestTags(
+        lang,
+        untagged.map((c) => ({ target: c.target, english: c.english })),
+      )
+      const byKey = new Map(tags.map((t) => [wordKey(t.target), t]))
+      for (const c of untagged) {
+        const t = byKey.get(wordKey(c.target))
+        c.topic = t?.topic ?? 'Other'
+        c.partOfSpeech = t?.partOfSpeech ?? 'other'
+        c.tagged = true // mark attempted so we don't re-request it
+      }
+    } catch {
+      // Leave untagged; it'll retry next time the deck is opened.
+    } finally {
+      tagging.value = false
+    }
   }
 
   return {
@@ -499,6 +576,13 @@ export const usePracticeStore = defineStore('practice', () => {
     flashcards,
     activeLanguage,
     activeProfile,
+    // flashcards / review
+    reviewLanguage,
+    reviewDeck,
+    tagging,
+    languagesWithDecks,
+    deckStats,
+    needsPractice,
     // recap
     showRecap,
     recapLoading,
@@ -528,5 +612,9 @@ export const usePracticeStore = defineStore('practice', () => {
     toggleFlashcard,
     removeFlashcard,
     reviewFlashcard,
+    gradeCard,
+    startReview,
+    exitReview,
+    tagDeck,
   }
 })

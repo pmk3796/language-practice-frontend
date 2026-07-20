@@ -68,6 +68,54 @@ function formatDate(ts: number): string {
       </button>
     </section>
 
+    <!-- Flashcards: scoped to the selected language, or a per-language list. -->
+    <section
+      v-if="store.languagesWithDecks.length"
+      class="flashcards"
+    >
+      <h3>Flashcards</h3>
+
+      <!-- Specific language scope: that deck's summary + review. -->
+      <template v-if="store.homeLanguageInfo">
+        <div class="deck-row solo">
+          <div class="deck-info">
+            <span class="deck-count">{{ store.deckStats(store.homeLanguage).total }} cards</span>
+            <span v-if="store.deckStats(store.homeLanguage).needsPractice" class="deck-need">
+              🎯 {{ store.deckStats(store.homeLanguage).needsPractice }} need practice
+            </span>
+          </div>
+          <button
+            class="review-btn"
+            :disabled="!store.deckStats(store.homeLanguage).total"
+            @click="store.startReview(store.homeLanguage)"
+          >
+            Review →
+          </button>
+        </div>
+      </template>
+
+      <!-- All languages: one row per deck. -->
+      <template v-else>
+        <ul>
+          <li v-for="lang in store.languagesWithDecks" :key="lang.code" class="deck-row">
+            <div class="deck-lang">
+              <span class="flag">{{ lang.flag }}</span>
+              <div class="deck-info">
+                <span class="deck-name">{{ lang.name }}</span>
+                <span class="deck-sub">
+                  {{ store.deckStats(lang.code).total }} cards
+                  <span v-if="store.deckStats(lang.code).needsPractice" class="deck-need">
+                    · 🎯 {{ store.deckStats(lang.code).needsPractice }} need practice
+                  </span>
+                </span>
+              </div>
+            </div>
+            <button class="review-btn" @click="store.startReview(lang.code)">Review →</button>
+          </li>
+        </ul>
+      </template>
+    </section>
+
     <section class="history">
       <h3>
         Saved conversations
@@ -157,12 +205,91 @@ function formatDate(ts: number): string {
 }
 
 .starter,
-.history {
+.history,
+.flashcards {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 22px;
+}
+
+.flashcards h3 {
+  margin: 0 0 14px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.flashcards ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.deck-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.deck-row.solo {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.deck-lang {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.deck-lang .flag {
+  font-size: 22px;
+}
+.deck-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.deck-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+.deck-sub,
+.deck-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+.deck-count {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 600;
+}
+.deck-need {
+  color: var(--warn);
+}
+.review-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.review-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.review-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .starter h2 {

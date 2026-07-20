@@ -55,6 +55,14 @@ export interface Flashcard {
   english: string
   box: number
   createdAt: number
+  // Behavioral metadata (tracked locally as you review).
+  lastReviewedAt?: number
+  reviewCount?: number
+  wrongCount?: number
+  // Semantic metadata (added lazily by AI, cached forever).
+  topic?: string
+  partOfSpeech?: string
+  tagged?: boolean
 }
 
 // The AI-generated summary shown when a session ends.

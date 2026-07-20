@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import StartView from '@/views/StartView.vue'
 import HomeView from '@/views/HomeView.vue'
+import ReviewView from '@/views/ReviewView.vue'
 
 const store = usePracticeStore()
 
@@ -14,6 +15,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <HomeView v-if="store.activeSession" />
+  <ReviewView v-if="store.reviewLanguage" />
+  <HomeView v-else-if="store.activeSession" />
   <StartView v-else />
 </template>

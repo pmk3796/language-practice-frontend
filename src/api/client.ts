@@ -43,6 +43,27 @@ export async function fetchProfiles(): Promise<{ default: string; profiles: Prof
   return res.json()
 }
 
+export interface WordTag {
+  target: string
+  topic: string
+  partOfSpeech: string
+}
+
+// Batch-categorise flashcards (topic + part of speech).
+export async function requestTags(
+  language: string,
+  words: { target: string; english: string }[],
+): Promise<WordTag[]> {
+  const res = await fetch(`${BASE}/api/tag`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language, words }),
+  })
+  if (!res.ok) throw new Error('Could not tag cards')
+  const body = await res.json()
+  return Array.isArray(body.tags) ? body.tags : []
+}
+
 // On-demand pronunciation. Returns a playable object URL, cached so repeated
 // plays of the same word don't re-hit the API.
 const speechCache = new Map<string, string>()
