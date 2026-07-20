@@ -303,42 +303,33 @@ watch(
   text-decoration-skip-ink: none;
 }
 
-/* A tab attached beside the bubble, matching its style, holding the fixed
-   flip/replay controls. Lives in the empty horizontal space, so it costs no
-   vertical room and never overlaps the text. */
+/* A compact, subtle pill in the gutter beside the bubble holding the fixed
+   flip/replay controls. Horizontal so it stays short (a single line's height),
+   and vertically centred so it looks right next to tall multiline bubbles. */
 .ext {
   flex-shrink: 0;
   align-self: center;
   display: flex;
-  flex-direction: column;
   gap: 2px;
-  padding: 4px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.row.user .ext {
-  background: var(--accent);
-  border-color: transparent;
-  color: #fff;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
 }
 
 .ext-btn {
   background: transparent;
   border: none;
   color: inherit;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
-  padding: 5px 7px;
-  border-radius: 8px;
-  opacity: 0.85;
+  padding: 4px 6px;
+  border-radius: 7px;
 }
 
 .ext-btn:hover:not(:disabled) {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .ext-btn:disabled {
