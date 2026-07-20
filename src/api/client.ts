@@ -43,6 +43,40 @@ export async function fetchProfiles(): Promise<{ default: string; profiles: Prof
   return res.json()
 }
 
+// On-demand pronunciation. Returns a playable object URL, cached so repeated
+// plays of the same word don't re-hit the API.
+const speechCache = new Map<string, string>()
+
+export async function fetchSpeech(
+  text: string,
+  language: string,
+  speed: 'slow' | 'normal',
+): Promise<string> {
+  const key = `${language}:${speed}:${text}`
+  const cached = speechCache.get(key)
+  if (cached) return cached
+
+  const res = await fetch(`${BASE}/api/speak`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language, speed }),
+  })
+  if (!res.ok) {
+    let message = 'Could not play audio.'
+    try {
+      const body = await res.json()
+      if (body?.message || body?.error) message = body.message || body.error
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+
+  const url = URL.createObjectURL(await res.blob())
+  speechCache.set(key, url)
+  return url
+}
+
 // Callbacks fired as the SSE stream arrives. All are optional.
 export interface StreamCallbacks {
   onTranscript?: (data: { userMessage: string }) => void

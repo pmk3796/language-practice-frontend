@@ -1,7 +1,28 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
+import { fetchSpeech } from '@/api/client'
+import { playAudio } from '@/lib/audio'
+import type { TranslationEntry } from '@/types'
 
 const store = usePracticeStore()
+
+// Which row is currently loading its audio (only one plays at a time).
+const speakingId = ref<string | null>(null)
+
+async function speak(t: TranslationEntry) {
+  const code = store.activeLanguage?.code
+  if (!code || speakingId.value) return
+  speakingId.value = t.id
+  try {
+    const url = await fetchSpeech(t.target, code, store.speed)
+    playAudio(url)
+  } catch {
+    /* silently ignore — a failed play shouldn't disrupt the session */
+  } finally {
+    speakingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -20,14 +41,25 @@ const store = usePracticeStore()
             <span class="arrow">→</span>
             <span class="target">{{ t.target }}</span>
           </div>
-          <button
-            class="add"
-            :class="{ saved: store.isFlashcardSaved(t.target, t.english) }"
-            :title="store.isFlashcardSaved(t.target, t.english) ? 'Remove from flashcards' : 'Add to flashcards'"
-            @click="store.toggleFlashcard(t.target, t.english)"
-          >
-            {{ store.isFlashcardSaved(t.target, t.english) ? '✓' : '＋' }}
-          </button>
+          <div class="row-actions">
+            <button
+              class="icon speak"
+              :disabled="speakingId === t.id"
+              title="Play pronunciation"
+              @click="speak(t)"
+            >
+              <span v-if="speakingId === t.id" class="spinner" />
+              <span v-else>🔊</span>
+            </button>
+            <button
+              class="icon add"
+              :class="{ saved: store.isFlashcardSaved(t.target, t.english) }"
+              :title="store.isFlashcardSaved(t.target, t.english) ? 'Remove from flashcards' : 'Add to flashcards'"
+              @click="store.toggleFlashcard(t.target, t.english)"
+            >
+              {{ store.isFlashcardSaved(t.target, t.english) ? '✓' : '＋' }}
+            </button>
+          </div>
         </li>
       </ul>
     </div>
@@ -69,6 +101,7 @@ li {
   align-items: center;
   gap: 8px;
   font-size: 15px;
+  min-width: 0;
 }
 .en {
   color: var(--muted);
@@ -80,23 +113,47 @@ li {
   color: var(--accent-2);
   font-weight: 600;
 }
-.add {
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
-  flex-shrink: 0;
 }
-.add:hover {
+.icon:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
+}
+.icon:disabled {
+  cursor: default;
 }
 .add.saved {
   border-color: var(--accent-2);
   color: var(--accent-2);
+}
+.spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
