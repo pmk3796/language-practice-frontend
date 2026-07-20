@@ -365,7 +365,15 @@ export const usePracticeStore = defineStore('practice', () => {
     try {
       await streamConversation(blob, filename, s.language, s.profile, speed.value, history, {
         onTranscript: ({ userMessage }) => {
-          s.messages.push({ id: uid(), role: 'user', text: userMessage, words: [] })
+          // Keep the learner's own recording so they can replay what they said.
+          // It's their real audio, so it only lasts the session (not persisted).
+          s.messages.push({
+            id: uid(),
+            role: 'user',
+            text: userMessage,
+            words: [],
+            audioUrl: URL.createObjectURL(blob),
+          })
           userMsg = s.messages[s.messages.length - 1]!
           s.messages.push({ id: uid(), role: 'assistant', text: '', words: [], pending: true })
           assistant = s.messages[s.messages.length - 1]!

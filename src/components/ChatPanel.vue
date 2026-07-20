@@ -107,7 +107,7 @@ watch(
                right for you) so the flip button doesn't move when the text
                reflows on flip. -->
           <div
-            v-if="(message.words && message.words.length && !message.pending) || (message.role === 'assistant' && message.text && !message.pending)"
+            v-if="!message.pending && ((message.words && message.words.length) || (message.role === 'assistant' && message.text) || (message.role === 'user' && message.audioUrl))"
             class="msg-actions"
           >
             <button
@@ -119,10 +119,10 @@ watch(
               ⇄
             </button>
             <button
-              v-if="message.role === 'assistant' && message.text && !message.pending"
+              v-if="!message.pending && ((message.role === 'assistant' && message.text) || (message.role === 'user' && message.audioUrl))"
               class="act-btn"
               :disabled="replayingId === message.id"
-              title="Replay"
+              :title="message.role === 'user' ? 'Replay your recording' : 'Replay'"
               @click="replay(message)"
             >
               <span v-if="replayingId === message.id" class="spinner" />
