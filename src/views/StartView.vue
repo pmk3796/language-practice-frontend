@@ -47,8 +47,7 @@ function formatDate(ts: number): string {
       </button>
     </div>
 
-    <div class="columns">
-      <section class="starter">
+    <section class="starter">
       <h2>Start a conversation</h2>
       <div class="pickers">
         <ProfileSelector />
@@ -67,9 +66,9 @@ function formatDate(ts: number): string {
       <button class="start" :disabled="!store.languages.length" @click="store.startSession()">
         Start conversation →
       </button>
-      </section>
+    </section>
 
-      <div class="right">
+    <div class="lower">
       <!-- Flashcards: scoped to the selected language, or a per-language list. -->
       <section
         v-if="store.languagesWithDecks.length"
@@ -155,7 +154,6 @@ function formatDate(ts: number): string {
         </li>
       </ul>
       </section>
-      </div>
     </div>
   </div>
 </template>
@@ -171,26 +169,20 @@ function formatDate(ts: number): string {
   gap: 16px;
 }
 
-/* Start card on the left; flashcards + history stacked on the right. Fills the
-   viewport so the page doesn't grow — the history list scrolls inside its card. */
-.columns {
+/* Start card full-width on top; flashcards + history side by side beneath,
+   filling the viewport so the page doesn't grow — history scrolls in its card. */
+.lower {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1fr 1.15fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 18px;
 }
-.right {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 0;
-}
-.starter {
+.flashcards {
   align-self: start;
 }
 .history {
-  flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -205,11 +197,12 @@ function formatDate(ts: number): string {
   .lobby {
     height: auto;
   }
-  .columns {
+  .lower {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
   .history {
-    flex: initial;
+    min-height: auto;
   }
   .history ul {
     overflow: visible;
