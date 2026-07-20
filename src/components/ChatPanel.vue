@@ -223,7 +223,7 @@ watch(
 }
 
 .row.user .bubble {
-  background: var(--accent);
+  background: var(--sent);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -247,20 +247,10 @@ watch(
   background: rgba(108, 140, 255, 0.25);
 }
 
-/* Your bubble is blue, so the blue hover is invisible there — use a light tint. */
+/* The deep-indigo user bubble lets the same green flip/underline pop, so no
+   per-bubble colour overrides are needed — just a slightly stronger hover tint. */
 .row.user .word:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-/* Green clashes with the blue bubble: flip reads via a light highlight (white
-   text), and the saved underline switches to a warm amber that suits the blue. */
-.row.user .word.flipped {
-  background: rgba(255, 255, 255, 0.26);
-  color: #fff;
-}
-
-.row.user .word.saved .tok-core {
-  text-decoration-color: var(--warn);
+  background: rgba(108, 140, 255, 0.4);
 }
 
 .add-chip {

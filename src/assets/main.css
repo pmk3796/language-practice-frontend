@@ -7,6 +7,7 @@
   --muted: #9aa0bd;
   --accent: #6c8cff;
   --accent-2: #4ad6a0;
+  --sent: #4b45c9; /* user (sent) message bubble — deep indigo so green pops */
   --danger: #ff5d6c;
   --warn: #ffcf5c;
   --radius: 14px;
