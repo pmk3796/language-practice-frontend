@@ -467,6 +467,11 @@ async function speak(text: string) {
   gap: 14px;
   cursor: pointer;
   padding: 30px;
+  /* It's a flip control, not selectable prose — clicking to flip was selecting
+     the text and showing a highlighted box. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .say {
   position: absolute;
