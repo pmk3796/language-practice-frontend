@@ -43,6 +43,15 @@ const filtered = computed<Flashcard[]>(() => {
   return cards
 })
 
+const anyFilter = computed(
+  () => needsPracticeOnly.value || selectedTopics.value.length > 0 || selectedPos.value.length > 0,
+)
+function clearFilters() {
+  needsPracticeOnly.value = false
+  selectedTopics.value = []
+  selectedPos.value = []
+}
+
 // --- Run state -------------------------------------------------------------
 type Phase = 'setup' | 'running' | 'done'
 const phase = ref<Phase>('setup')
@@ -103,65 +112,91 @@ async function speak(text: string) {
       <div class="tagging" v-if="store.tagging">Categorising…</div>
     </header>
 
-    <!-- SETUP: pick filters -->
+    <!-- SETUP: configure the run -->
     <section v-if="phase === 'setup'" class="setup">
-      <div class="filters">
-        <div class="filter-group">
-          <span class="flabel">Focus</span>
-          <div class="chips">
-            <button class="chip" :class="{ on: needsPracticeOnly }" @click="needsPracticeOnly = !needsPracticeOnly">
-              🎯 Needs practice
-            </button>
+      <div class="setup-card">
+        <div class="deck-summary">
+          <span class="ds-flag">{{ langInfo?.flag }}</span>
+          <div class="ds-text">
+            <div class="ds-title">{{ langInfo?.name }} deck</div>
+            <div class="ds-sub">
+              {{ store.reviewDeck.length }} cards
+              <span v-if="store.tagging" class="ds-tagging">· categorising…</span>
+            </div>
           </div>
         </div>
 
-        <div class="filter-group">
-          <span class="flabel">Order</span>
-          <div class="chips">
-            <button class="chip" :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Struggling first</button>
-            <button class="chip" :class="{ on: sortBy === 'recent' }" @click="sortBy = 'recent'">Recently added</button>
-            <button class="chip" :class="{ on: sortBy === 'stale' }" @click="sortBy = 'stale'">Not reviewed lately</button>
+        <!-- Sort: a single choice, shown as a connected segmented control. -->
+        <div class="block">
+          <span class="blabel">Sort by</span>
+          <div class="segmented">
+            <button :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Struggling first</button>
+            <button :class="{ on: sortBy === 'recent' }" @click="sortBy = 'recent'">Recently added</button>
+            <button :class="{ on: sortBy === 'stale' }" @click="sortBy = 'stale'">Not reviewed lately</button>
           </div>
         </div>
 
-        <div class="filter-group" v-if="availableTopics.length">
-          <span class="flabel">Category</span>
-          <div class="chips">
-            <button
-              v-for="t in availableTopics"
-              :key="t"
-              class="chip"
-              :class="{ on: selectedTopics.includes(t) }"
-              @click="toggle(selectedTopics, t)"
-            >
-              {{ t }}
-            </button>
+        <!-- Filters: optional multi-select toggles, grouped together. -->
+        <div class="block">
+          <div class="blabel-row">
+            <span class="blabel">Filters</span>
+            <span class="optional">optional</span>
+            <button v-if="anyFilter" class="clear" @click="clearFilters">Clear</button>
           </div>
+
+          <div class="subgroup">
+            <span class="sublabel">Focus</span>
+            <div class="chips">
+              <button class="chip" :class="{ on: needsPracticeOnly }" @click="needsPracticeOnly = !needsPracticeOnly">
+                🎯 Needs practice
+              </button>
+            </div>
+          </div>
+
+          <div class="subgroup" v-if="availableTopics.length">
+            <span class="sublabel">Category</span>
+            <div class="chips">
+              <button
+                v-for="t in availableTopics"
+                :key="t"
+                class="chip"
+                :class="{ on: selectedTopics.includes(t) }"
+                @click="toggle(selectedTopics, t)"
+              >
+                {{ t }}
+              </button>
+            </div>
+          </div>
+
+          <div class="subgroup" v-if="availablePos.length">
+            <span class="sublabel">Part of speech</span>
+            <div class="chips">
+              <button
+                v-for="p in availablePos"
+                :key="p"
+                class="chip"
+                :class="{ on: selectedPos.includes(p) }"
+                @click="toggle(selectedPos, p)"
+              >
+                {{ p }}
+              </button>
+            </div>
+          </div>
+
+          <p v-if="store.tagging && !availableTopics.length" class="hint">
+            Categories will appear once the AI finishes tagging your cards…
+          </p>
         </div>
 
-        <div class="filter-group" v-if="availablePos.length">
-          <span class="flabel">Part of speech</span>
-          <div class="chips">
-            <button
-              v-for="p in availablePos"
-              :key="p"
-              class="chip"
-              :class="{ on: selectedPos.includes(p) }"
-              @click="toggle(selectedPos, p)"
-            >
-              {{ p }}
-            </button>
-          </div>
+        <div class="setup-footer">
+          <span class="match">
+            Reviewing <strong>{{ filtered.length }}</strong> of {{ store.reviewDeck.length }}
+          </span>
+          <button class="start" :disabled="!filtered.length" @click="start">
+            Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →
+          </button>
         </div>
-
-        <p v-if="store.tagging && !availableTopics.length" class="hint">
-          Categories will appear once the AI finishes tagging your cards…
-        </p>
       </div>
-
-      <button class="start" :disabled="!filtered.length" @click="start">
-        Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →
-      </button>
     </section>
 
     <!-- RUNNING: one card at a time -->
@@ -253,30 +288,117 @@ async function speak(text: string) {
 /* Setup */
 .setup {
   flex: 1;
-  max-width: 720px;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+.setup-card {
   width: 100%;
-  margin: 0 auto;
+  max-width: 620px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 22px;
-  overflow-y: auto;
 }
-.filters {
+
+.deck-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.ds-flag {
+  font-size: 32px;
+}
+.ds-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+.ds-sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+.ds-tagging {
+  color: var(--accent);
+}
+
+.block {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.flabel {
+.blabel {
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
+}
+.blabel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.optional {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.8;
+}
+.clear {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.clear:hover {
+  text-decoration: underline;
+}
+
+/* Single-choice: connected segments so it reads as "pick one". */
+.segmented {
+  display: inline-flex;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.segmented button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.segmented button:hover {
+  color: var(--text);
+}
+.segmented button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Optional filters: separate outline pills that fill when selected. */
+.subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.sublabel {
+  color: var(--muted);
+  font-size: 12px;
 }
 .chips {
   display: flex;
@@ -284,7 +406,7 @@ async function speak(text: string) {
   gap: 8px;
 }
 .chip {
-  background: var(--panel-2);
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
   border-radius: 999px;
@@ -293,6 +415,7 @@ async function speak(text: string) {
 }
 .chip:hover {
   color: var(--text);
+  border-color: var(--accent);
 }
 .chip.on {
   background: var(--accent);
@@ -304,8 +427,24 @@ async function speak(text: string) {
   font-size: 13px;
   margin: 0;
 }
+
+.setup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.match {
+  color: var(--muted);
+  font-size: 14px;
+}
+.match strong {
+  color: var(--text);
+}
+
 .start {
-  align-self: flex-start;
   background: linear-gradient(145deg, var(--accent), #4a6bff);
   color: #fff;
   border: none;
