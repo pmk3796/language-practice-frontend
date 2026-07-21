@@ -115,20 +115,9 @@ async function speak(text: string) {
     <!-- SETUP: configure the run -->
     <section v-if="phase === 'setup'" class="setup">
       <div class="setup-card">
-        <div class="deck-summary">
-          <span class="ds-flag">{{ langInfo?.flag }}</span>
-          <div class="ds-text">
-            <div class="ds-title">{{ langInfo?.name }} deck</div>
-            <div class="ds-sub">
-              {{ store.reviewDeck.length }} cards
-              <span v-if="store.tagging" class="ds-tagging">· categorising…</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sort: a single choice, shown as a connected segmented control. -->
-        <div class="block">
-          <span class="blabel">Sort by</span>
+        <!-- Sort: single choice (connected segments). -->
+        <div class="field">
+          <span class="flabel">Sort by</span>
           <div class="segmented">
             <button :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Struggling first</button>
             <button :class="{ on: sortBy === 'recent' }" @click="sortBy = 'recent'">Recently added</button>
@@ -136,57 +125,57 @@ async function speak(text: string) {
           </div>
         </div>
 
-        <!-- Filters: optional multi-select toggles, grouped together. -->
-        <div class="block">
-          <div class="blabel-row">
-            <span class="blabel">Filters</span>
-            <span class="optional">optional</span>
-            <button v-if="anyFilter" class="clear" @click="clearFilters">Clear</button>
-          </div>
+        <div class="divider" />
 
-          <div class="subgroup">
-            <span class="sublabel">Focus</span>
-            <div class="chips">
-              <button class="chip" :class="{ on: needsPracticeOnly }" @click="needsPracticeOnly = !needsPracticeOnly">
-                🎯 Needs practice
-              </button>
-            </div>
-          </div>
-
-          <div class="subgroup" v-if="availableTopics.length">
-            <span class="sublabel">Category</span>
-            <div class="chips">
-              <button
-                v-for="t in availableTopics"
-                :key="t"
-                class="chip"
-                :class="{ on: selectedTopics.includes(t) }"
-                @click="toggle(selectedTopics, t)"
-              >
-                {{ t }}
-              </button>
-            </div>
-          </div>
-
-          <div class="subgroup" v-if="availablePos.length">
-            <span class="sublabel">Part of speech</span>
-            <div class="chips">
-              <button
-                v-for="p in availablePos"
-                :key="p"
-                class="chip"
-                :class="{ on: selectedPos.includes(p) }"
-                @click="toggle(selectedPos, p)"
-              >
-                {{ p }}
-              </button>
-            </div>
-          </div>
-
-          <p v-if="store.tagging && !availableTopics.length" class="hint">
-            Categories will appear once the AI finishes tagging your cards…
-          </p>
+        <!-- Filters: optional multi-select toggles. -->
+        <div class="filters-head">
+          <span class="flabel">Filters</span>
+          <span class="optional">optional</span>
+          <button v-if="anyFilter" class="clear" @click="clearFilters">Clear</button>
         </div>
+
+        <div class="field">
+          <span class="flabel sub">Focus</span>
+          <div class="chips">
+            <button class="chip" :class="{ on: needsPracticeOnly }" @click="needsPracticeOnly = !needsPracticeOnly">
+              🎯 Needs practice
+            </button>
+          </div>
+        </div>
+
+        <div class="field" v-if="availableTopics.length">
+          <span class="flabel sub">Category</span>
+          <div class="chips">
+            <button
+              v-for="t in availableTopics"
+              :key="t"
+              class="chip"
+              :class="{ on: selectedTopics.includes(t) }"
+              @click="toggle(selectedTopics, t)"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+
+        <div class="field" v-if="availablePos.length">
+          <span class="flabel sub">Part of speech</span>
+          <div class="chips">
+            <button
+              v-for="p in availablePos"
+              :key="p"
+              class="chip"
+              :class="{ on: selectedPos.includes(p) }"
+              @click="toggle(selectedPos, p)"
+            >
+              {{ p }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="store.tagging && !availableTopics.length" class="hint">
+          Categories will appear once the AI finishes tagging your cards…
+        </p>
 
         <div class="setup-footer">
           <span class="match">
@@ -296,55 +285,54 @@ async function speak(text: string) {
 }
 .setup-card {
   width: 100%;
-  max-width: 620px;
+  max-width: 640px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-}
-
-.deck-summary {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-.ds-flag {
-  font-size: 32px;
-}
-.ds-title {
-  font-size: 18px;
-  font-weight: 700;
-}
-.ds-sub {
-  color: var(--muted);
-  font-size: 13px;
-}
-.ds-tagging {
-  color: var(--accent);
 }
 
-.block {
+/* Each control is a row: fixed-width label on the left, control on the right. */
+.field {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 14px;
 }
-.blabel {
+.flabel {
+  width: 96px;
+  flex-shrink: 0;
+  padding-top: 8px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
-.blabel-row {
+.flabel.sub {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.filters-head {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.filters-head .flabel {
+  width: auto;
+  padding-top: 0;
 }
 .optional {
   color: var(--muted);
@@ -379,7 +367,7 @@ async function speak(text: string) {
   border: none;
   color: var(--muted);
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 7px 13px;
   font-size: 14px;
 }
 .segmented button:hover {
@@ -390,16 +378,7 @@ async function speak(text: string) {
   color: #fff;
 }
 
-/* Optional filters: separate outline pills that fill when selected. */
-.subgroup {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.sublabel {
-  color: var(--muted);
-  font-size: 12px;
-}
+/* Optional filters: outline pills that fill when selected. */
 .chips {
   display: flex;
   flex-wrap: wrap;
