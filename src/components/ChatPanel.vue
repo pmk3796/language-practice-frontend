@@ -167,16 +167,18 @@ onBeforeUnmount(() => {
 /**
  * Saved multi-word phrases are underlined across the whole run.
  *
- * Matching ignores punctuation and case (so "certo, un caffè" and
- * "certo un caffè" are the same phrase), and overlapping runs are assigned
- * separate lanes so their underlines never sit on top of each other.
+ * Matching ignores punctuation and case, so "certo, un caffè" and
+ * "certo un caffè" are the same phrase.
+ *
+ * Overlapping runs are merged into one continuous underline rather than stacked
+ * into separate lanes: there isn't enough room beneath a line of text for
+ * several bars without them crowding each other and the row below. So a word
+ * shows at most two marks — its own underline tight to the text, and one phrase
+ * underline beneath it.
  */
-const MAX_PHRASE_LANES = 2
-
 interface PhraseRun {
   start: number
   end: number
-  lane: number
 }
 
 const phraseRuns = computed<Record<string, PhraseRun[]>>(() => {
@@ -202,28 +204,26 @@ const phraseRuns = computed<Record<string, PhraseRun[]>>(() => {
     }
     if (!found.length) continue
 
-    // Greedy interval partitioning: first lane whose last run has already ended.
-    found.sort((a, b) => a.start - b.start || b.end - a.end)
-    const laneEnd: number[] = []
-    byMessage[message.id] = found.map((run) => {
-      let lane = laneEnd.findIndex((end) => end < run.start)
-      if (lane === -1) {
-        lane = laneEnd.length
-        laneEnd.push(run.end)
-      } else {
-        laneEnd[lane] = run.end
-      }
-      return { ...run, lane }
-    })
+    // Merge runs that genuinely overlap. Runs that merely sit next to each
+    // other stay separate, so two adjacent phrases don't read as one.
+    found.sort((a, b) => a.start - b.start || a.end - b.end)
+    const merged: PhraseRun[] = []
+    for (const run of found) {
+      const last = merged[merged.length - 1]
+      if (last && run.start <= last.end) last.end = Math.max(last.end, run.end)
+      else merged.push({ ...run })
+    }
+    byMessage[message.id] = merged
   }
   return byMessage
 })
 
-/** The phrase underlines covering one word: lane index + whether the run ends here. */
-function phraseLanes(messageId: string, index: number) {
-  return (phraseRuns.value[messageId] ?? [])
-    .filter((r) => r.lane < MAX_PHRASE_LANES && index >= r.start && index <= r.end)
-    .map((r) => ({ lane: r.lane, last: index === r.end }))
+/** The phrase underline covering one word, if any (null when not in a run). */
+function phraseMark(messageId: string, index: number): { last: boolean } | null {
+  const run = (phraseRuns.value[messageId] ?? []).find(
+    (r) => index >= r.start && index <= r.end,
+  )
+  return run ? { last: index === run.end } : null
 }
 
 // Tracks which assistant words are currently flipped to English, keyed by
@@ -327,11 +327,9 @@ watch(
               ><span class="tok-core">{{ wordParts(message.id, i, word.target, word.english).core }}</span
               ><span class="tok-trail">{{ wordParts(message.id, i, word.target, word.english).trail }}</span
               ><span
-                v-for="lane in phraseLanes(message.id, i)"
-                :key="'lane' + lane.lane"
+                v-if="phraseMark(message.id, i)"
                 class="phrase-line"
-                :class="{ bridge: !lane.last }"
-                :style="{ bottom: -1 - lane.lane * 5 + 'px' }"
+                :class="{ bridge: !phraseMark(message.id, i)!.last }"
               />
               <button
                 class="add-chip"
@@ -435,6 +433,8 @@ watch(
   position: absolute;
   left: 0;
   right: 0;
+  /* Sits clearly below the single-word underline above it. */
+  bottom: -4px;
   height: 3px;
   border-radius: 2px;
   background: var(--vocab-underline);
