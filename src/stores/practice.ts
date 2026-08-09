@@ -35,7 +35,8 @@ function cleanWord(s: string): string {
 }
 
 // Case-insensitive, punctuation-insensitive key used to match/dedupe words.
-function wordKey(s: string): string {
+// Exported so the conversation can match saved phrases the same way.
+export function wordKey(s: string): string {
   return cleanWord(s).toLowerCase()
 }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { usePracticeStore } from '@/stores/practice'
+import { usePracticeStore, wordKey } from '@/stores/practice'
 import { fetchSpeech } from '@/api/client'
 import { playAudio } from '@/lib/audio'
 import type { ChatMessage, WordPair } from '@/types'
@@ -164,6 +164,68 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousedown', onDocMouseDown)
 })
 
+/**
+ * Saved multi-word phrases are underlined across the whole run.
+ *
+ * Matching ignores punctuation and case (so "certo, un caffè" and
+ * "certo un caffè" are the same phrase), and overlapping runs are assigned
+ * separate lanes so their underlines never sit on top of each other.
+ */
+const MAX_PHRASE_LANES = 2
+
+interface PhraseRun {
+  start: number
+  end: number
+  lane: number
+}
+
+const phraseRuns = computed<Record<string, PhraseRun[]>>(() => {
+  // Only cards that are actually phrases; single words keep their own underline.
+  const phrases = store.flashcards
+    .map((c) => c.target.trim().split(/\s+/).map(wordKey).filter(Boolean))
+    .filter((toks) => toks.length > 1)
+
+  const byMessage: Record<string, PhraseRun[]> = {}
+  if (!phrases.length) return byMessage
+
+  for (const message of store.messages) {
+    if (!message.words?.length) continue
+    const toks = message.words.map((w) => wordKey(w.target))
+    const found: { start: number; end: number }[] = []
+
+    for (const phrase of phrases) {
+      for (let i = 0; i + phrase.length <= toks.length; i++) {
+        if (phrase.every((t, j) => t === toks[i + j])) {
+          found.push({ start: i, end: i + phrase.length - 1 })
+        }
+      }
+    }
+    if (!found.length) continue
+
+    // Greedy interval partitioning: first lane whose last run has already ended.
+    found.sort((a, b) => a.start - b.start || b.end - a.end)
+    const laneEnd: number[] = []
+    byMessage[message.id] = found.map((run) => {
+      let lane = laneEnd.findIndex((end) => end < run.start)
+      if (lane === -1) {
+        lane = laneEnd.length
+        laneEnd.push(run.end)
+      } else {
+        laneEnd[lane] = run.end
+      }
+      return { ...run, lane }
+    })
+  }
+  return byMessage
+})
+
+/** The phrase underlines covering one word: lane index + whether the run ends here. */
+function phraseLanes(messageId: string, index: number) {
+  return (phraseRuns.value[messageId] ?? [])
+    .filter((r) => r.lane < MAX_PHRASE_LANES && index >= r.start && index <= r.end)
+    .map((r) => ({ lane: r.lane, last: index === r.end }))
+}
+
 // Tracks which assistant words are currently flipped to English, keyed by
 // "messageId:wordIndex".
 const flipped = reactive<Record<string, boolean>>({})
@@ -263,7 +325,14 @@ watch(
             >
               <span class="tok-lead">{{ wordParts(message.id, i, word.target, word.english).lead }}</span
               ><span class="tok-core">{{ wordParts(message.id, i, word.target, word.english).core }}</span
-              ><span class="tok-trail">{{ wordParts(message.id, i, word.target, word.english).trail }}</span>
+              ><span class="tok-trail">{{ wordParts(message.id, i, word.target, word.english).trail }}</span
+              ><span
+                v-for="lane in phraseLanes(message.id, i)"
+                :key="'lane' + lane.lane"
+                class="phrase-line"
+                :class="{ bridge: !lane.last }"
+                :style="{ bottom: -1 - lane.lane * 5 + 'px' }"
+              />
               <button
                 class="add-chip"
                 :class="{ saved: isSaved(word) }"
@@ -333,7 +402,7 @@ watch(
   max-width: 78%;
   padding: 8px 12px;
   border-radius: 14px;
-  line-height: 1.55;
+  line-height: 1.85;
   font-size: 16px;
   position: relative;
   display: flex;
@@ -360,6 +429,21 @@ watch(
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-bottom-left-radius: 4px;
+}
+
+.phrase-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--vocab-underline);
+  pointer-events: none;
+}
+/* Words mid-run stretch past their own box to cover the space that separates
+   them, so the phrase reads as one continuous underline. */
+.phrase-line.bridge {
+  right: -5px;
 }
 
 .word {
