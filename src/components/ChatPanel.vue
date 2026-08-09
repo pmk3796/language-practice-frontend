@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import { fetchSpeech } from '@/api/client'
 import { playAudio } from '@/lib/audio'
@@ -52,6 +52,107 @@ function isSaved(word: WordPair): boolean {
 function toggleFlashcard(word: WordPair): void {
   store.toggleFlashcard(word.target, word.english)
 }
+
+/**
+ * Phrase selection.
+ *
+ * Drag across words (or click one, then shift-click another) to select a
+ * contiguous run within a single message, so whole phrases can be saved —
+ * not just single words. Dragging the words themselves rather than the small
+ * ＋ chips keeps the hit targets large and survives line wrapping.
+ */
+interface PhraseSelection {
+  messageId: string
+  start: number
+  end: number
+}
+const selection = ref<PhraseSelection | null>(null)
+let anchor: { messageId: string; index: number } | null = null
+let dragged = false
+// Tracked explicitly rather than read from e.buttons, which isn't reliable
+// across input types (trackpads, synthetic events, pen).
+let pointerDown = false
+// The click that sets an anchor also flips that word. If the click turns out to
+// be the start of a shift-click phrase selection, we put the flip back.
+let anchorFlipBefore = false
+
+function setRange(messageId: string, a: number, b: number) {
+  selection.value = { messageId, start: Math.min(a, b), end: Math.max(a, b) }
+}
+
+function onWordDown(messageId: string, index: number, e: MouseEvent) {
+  // Shift-click extends from the last touched word — the no-drag alternative.
+  if (e.shiftKey && anchor && anchor.messageId === messageId) {
+    setRange(messageId, anchor.index, index)
+    // Selecting a phrase shouldn't leave the anchor word flipped.
+    flipped[`${messageId}:${anchor.index}`] = anchorFlipBefore
+    dragged = true // suppress the flip that would otherwise follow
+    return
+  }
+  anchor = { messageId, index }
+  anchorFlipBefore = !!flipped[`${messageId}:${index}`]
+  dragged = false
+  pointerDown = true
+  selection.value = null
+}
+
+function onWordEnter(messageId: string, index: number) {
+  // Only while the pointer is held down and within the same message.
+  if (!anchor || !pointerDown || anchor.messageId !== messageId) return
+  if (index !== anchor.index) {
+    dragged = true
+    setRange(messageId, anchor.index, index)
+  }
+}
+
+function onWordClick(messageId: string, index: number) {
+  if (dragged) {
+    dragged = false // it was a drag/shift-click, not a plain click
+    return
+  }
+  toggleWord(messageId, index)
+}
+
+function isSelected(messageId: string, index: number): boolean {
+  const sel = selection.value
+  return !!sel && sel.messageId === messageId && index >= sel.start && index <= sel.end
+}
+
+const selectedWords = computed<WordPair[]>(() => {
+  const sel = selection.value
+  if (!sel) return []
+  const msg = store.messages.find((m) => m.id === sel.messageId)
+  return msg?.words?.slice(sel.start, sel.end + 1) ?? []
+})
+// Only offer the phrase action for a real multi-word run.
+const hasPhrase = computed(() => selectedWords.value.length > 1)
+const phraseTarget = computed(() => selectedWords.value.map((w) => w.target).join(' '))
+const phraseEnglish = computed(() => selectedWords.value.map((w) => w.english).join(' '))
+const phraseSaved = computed(() => store.isFlashcardSaved(phraseTarget.value))
+
+function clearSelection() {
+  selection.value = null
+  anchor = null
+}
+
+function togglePhrase() {
+  store.toggleFlashcard(phraseTarget.value, phraseEnglish.value)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') clearSelection()
+}
+function onPointerUp() {
+  pointerDown = false
+}
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('mouseup', onPointerUp)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('mouseup', onPointerUp)
+})
 
 // Tracks which assistant words are currently flipped to English, keyed by
 // "messageId:wordIndex".
@@ -140,9 +241,15 @@ watch(
               v-for="(word, i) in message.words"
               :key="i"
               class="word"
-              :class="{ flipped: flipped[`${message.id}:${i}`], saved: isSaved(word) }"
+              :class="{
+                flipped: flipped[`${message.id}:${i}`],
+                saved: isSaved(word),
+                picked: isSelected(message.id, i),
+              }"
               :title="word.english"
-              @click="toggleWord(message.id, i)"
+              @mousedown="onWordDown(message.id, i, $event)"
+              @mouseenter="onWordEnter(message.id, i)"
+              @click="onWordClick(message.id, i)"
             >
               <span class="tok-lead">{{ wordParts(message.id, i, word.target, word.english).lead }}</span
               ><span class="tok-core">{{ wordParts(message.id, i, word.target, word.english).core }}</span
@@ -166,9 +273,20 @@ watch(
         </div>
       </div>
     </div>
-    <p class="tip">
-      Tip: tap a word to flip it, or use <span class="flip-inline">⇄</span> to translate the whole line. Hover a
-      word and click <span class="chip-inline">＋</span> to save it to Flashcards.
+    <div v-if="hasPhrase" class="phrase-bar">
+      <div class="phrase-text">
+        <span class="phrase-target">{{ phraseTarget }}</span>
+        <span class="phrase-en">{{ phraseEnglish }}</span>
+      </div>
+      <button class="phrase-add" :class="{ saved: phraseSaved }" @click="togglePhrase">
+        {{ phraseSaved ? '✓ Saved' : '＋ Add phrase' }}
+      </button>
+      <button class="phrase-x" title="Clear selection" @click="clearSelection">✕</button>
+    </div>
+
+    <p v-else class="tip">
+      Tip: tap a word to flip it, or drag across words (or shift-click) to save a whole phrase. Use
+      <span class="flip-inline">⇄</span> to translate the line.
     </p>
   </section>
 </template>
@@ -236,6 +354,10 @@ watch(
 
 .word {
   cursor: pointer;
+  /* These are interactive tokens, not prose — stop drag-select painting a
+     native blue highlight on top of our own selection styling. */
+  user-select: none;
+  -webkit-user-select: none;
   padding: 1px 2px;
   border-radius: 5px;
   transition: background 0.12s ease;
@@ -298,6 +420,27 @@ watch(
 .word.flipped {
   background: var(--flip-bg);
   color: var(--flip-fg);
+}
+
+/* While a run is selected the single-word ＋ chip would float over it. */
+.word.picked .add-chip {
+  display: none;
+}
+
+/* Words in the current phrase selection. */
+.word.picked {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 0;
+}
+/* Round only the ends of the run so it reads as one continuous highlight. */
+.word.picked:not(.picked + .picked) {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+.word.picked:not(:has(+ .picked)) {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
 }
 
 /* Saved words get a thick green underline under the core only (not the
@@ -378,6 +521,68 @@ watch(
   50% {
     opacity: 0;
   }
+}
+
+.phrase-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+}
+.phrase-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.phrase-target {
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phrase-en {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phrase-add {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.phrase-add:hover {
+  filter: brightness(1.08);
+}
+.phrase-add.saved {
+  background: var(--success-soft);
+  color: var(--accent-2);
+}
+.phrase-x {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 7px;
+}
+.phrase-x:hover {
+  color: var(--text);
+  background: var(--tint);
 }
 
 .tip {

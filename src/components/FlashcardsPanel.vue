@@ -67,7 +67,7 @@ watch(
     <!-- List mode -->
     <div v-else class="body">
       <p v-if="!store.flashcards.length" class="empty">
-        Add words from the Translations panel (the ＋ button) to build your deck, then review them here.
+        Save words from the Translations panel, or drag across words in the conversation to save a phrase.
       </p>
       <template v-else>
         <button class="review-btn" @click="startReview">▶ Review {{ store.flashcards.length }} cards</button>
