@@ -2,6 +2,7 @@
 import { usePracticeStore } from '@/stores/practice'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import ProfileSelector from '@/components/ProfileSelector.vue'
+import SettingsButton from '@/components/SettingsButton.vue'
 import type { Session } from '@/types'
 
 const store = usePracticeStore()
@@ -28,7 +29,7 @@ function formatDate(ts: number): string {
         <h1>Language Practice</h1>
         <p>Low-pressure speaking practice — pick who you want to talk to.</p>
       </div>
-      <button class="gear" title="Settings" @click="store.openSettings()">⚙︎</button>
+      <SettingsButton />
     </header>
 
     <!-- Page language scope: only languages you've actually practised. Filters
@@ -220,21 +221,6 @@ function formatDate(ts: number): string {
 .brand-text {
   flex: 1;
   min-width: 0;
-}
-.gear {
-  flex-shrink: 0;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 10px;
-  width: 38px;
-  height: 38px;
-  font-size: 17px;
-  line-height: 1;
-}
-.gear:hover {
-  color: var(--text);
-  border-color: var(--accent);
 }
 .logo {
   font-size: 38px;

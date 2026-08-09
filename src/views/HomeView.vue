@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePracticeStore } from '@/stores/practice'
 import SpeedSelector from '@/components/SpeedSelector.vue'
+import SettingsButton from '@/components/SettingsButton.vue'
 import RecordButton from '@/components/RecordButton.vue'
 import ChatPanel from '@/components/ChatPanel.vue'
 import TranslationsPanel from '@/components/TranslationsPanel.vue'
@@ -28,7 +29,7 @@ const store = usePracticeStore()
 
       <div class="right">
         <SpeedSelector />
-        <button class="gear" title="Settings" @click="store.openSettings()">⚙︎</button>
+        <SettingsButton />
         <button v-if="!store.isArchived" class="end" @click="store.endSession()">End &amp; recap</button>
         <button v-else class="end ghosted" @click="store.viewRecap()">View recap</button>
       </div>
@@ -99,21 +100,6 @@ const store = usePracticeStore()
   display: flex;
   align-items: flex-end;
   gap: 16px;
-}
-
-.gear {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 10px;
-  width: 38px;
-  height: 38px;
-  font-size: 17px;
-  line-height: 1;
-}
-.gear:hover {
-  color: var(--text);
-  border-color: var(--accent);
 }
 
 .end {
