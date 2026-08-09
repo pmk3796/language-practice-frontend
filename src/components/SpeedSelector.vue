@@ -63,7 +63,7 @@ label {
 
 .seg button.active {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
 }
 
 .seg button:disabled {

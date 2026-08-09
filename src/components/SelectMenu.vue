@@ -146,7 +146,7 @@ label {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  background: linear-gradient(180deg, var(--panel-2), #1e2338);
+  background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
@@ -158,18 +158,18 @@ label {
 }
 
 .trigger:hover:not(.disabled) {
-  border-color: rgba(108, 140, 255, 0.6);
+  border-color: var(--accent);
 }
 
 .trigger:focus-visible {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.28);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .trigger.open {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.22);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .trigger.disabled {
@@ -218,10 +218,10 @@ label {
   list-style: none;
   margin: 0;
   padding: 6px;
-  background: #1c2138;
+  background: var(--menu-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow);
   z-index: 30;
 }
 
@@ -242,7 +242,7 @@ label {
 }
 
 .option.active {
-  background: rgba(108, 140, 255, 0.18);
+  background: var(--accent-soft);
 }
 
 .option .body {

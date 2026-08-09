@@ -138,7 +138,7 @@ const label = computed(() => {
 
 .review-recap {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 10px;
   padding: 9px 16px;
@@ -151,10 +151,10 @@ const label = computed(() => {
   height: 108px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(145deg, var(--accent), #4a6bff);
-  color: white;
+  background: linear-gradient(145deg, var(--accent-grad-a), var(--accent-grad-b));
+  color: var(--on-accent);
   font-size: 40px;
-  box-shadow: 0 10px 30px rgba(76, 108, 255, 0.4);
+  box-shadow: 0 10px 30px var(--accent-glow);
   transition: transform 0.12s ease, box-shadow 0.2s ease;
   display: grid;
   place-items: center;
@@ -222,8 +222,8 @@ const label = computed(() => {
 .error-box {
   max-width: 260px;
   text-align: center;
-  background: rgba(255, 93, 108, 0.1);
-  border: 1px solid rgba(255, 93, 108, 0.4);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
   border-radius: 12px;
   padding: 12px 14px;
   display: flex;
@@ -233,8 +233,8 @@ const label = computed(() => {
 }
 
 .error-box.billing {
-  background: rgba(255, 207, 92, 0.1);
-  border-color: rgba(255, 207, 92, 0.5);
+  background: var(--warn-soft);
+  border-color: var(--warn);
 }
 
 .badge {
@@ -254,8 +254,8 @@ const label = computed(() => {
 
 .bill-link {
   display: inline-block;
-  background: var(--warn);
-  color: #1a1e30;
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 700;
   font-size: 13px;
   text-decoration: none;

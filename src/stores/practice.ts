@@ -19,6 +19,7 @@ import { base64ToBlobUrl, playAudio } from '@/lib/audio'
 
 type SpeechSpeed = 'slow' | 'normal'
 type Status = 'idle' | 'processing' | 'error'
+export type ThemeChoice = 'light' | 'dark' | 'auto'
 
 const STORAGE_KEY = 'language-practice:v2'
 const MAX_HISTORY_TURNS = 10
@@ -47,6 +48,7 @@ interface Persisted {
   draftLanguage: string
   draftProfile: string
   speed: SpeechSpeed
+  theme: ThemeChoice
   activeSessionId: string | null
   sessions: Session[]
   // Flashcards are your vocabulary, kept per language and shared across sessions.
@@ -79,6 +81,7 @@ function load(): Persisted {
         draftLanguage: p.draftLanguage || 'it',
         draftProfile: p.draftProfile || 'free',
         speed: p.speed === 'slow' ? 'slow' : 'normal',
+        theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'auto',
         activeSessionId: p.activeSessionId ?? null,
         sessions: Array.isArray(p.sessions) ? p.sessions : [],
         flashcards: p.flashcards || {},
@@ -92,6 +95,7 @@ function load(): Persisted {
     draftLanguage: 'it',
     draftProfile: 'free',
     speed: 'normal',
+    theme: 'auto',
     activeSessionId: null,
     sessions: [],
     flashcards: migrateFlashcardsFromV1(),
@@ -114,6 +118,39 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // Global preference — editable any time, including mid-session
   const speed = ref<SpeechSpeed>(persisted.speed)
+
+  // --- Appearance -----------------------------------------------------------
+  const theme = ref<ThemeChoice>(persisted.theme)
+  const systemDark = ref(
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : true,
+  )
+  // 'auto' follows the OS, so keep the system preference live.
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    window
+      .matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', (e) => (systemDark.value = e.matches))
+  }
+  const resolvedTheme = computed<'light' | 'dark'>(() =>
+    theme.value === 'auto' ? (systemDark.value ? 'dark' : 'light') : theme.value,
+  )
+  // Components never check the theme — they just read tokens off <html>.
+  watch(
+    resolvedTheme,
+    (t) => {
+      if (typeof document !== 'undefined') document.documentElement.dataset.theme = t
+    },
+    { immediate: true },
+  )
+  function setTheme(choice: ThemeChoice) {
+    theme.value = choice
+  }
+
+  // Settings dialog
+  const showSettings = ref(false)
+  const openSettings = () => (showSettings.value = true)
+  const closeSettings = () => (showSettings.value = false)
 
   // Turn status
   const status = ref<Status>('idle')
@@ -228,7 +265,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ----------------------------------------------------------
   watch(
-    [homeLanguage, draftLanguage, draftProfile, speed, activeSessionId, sessions, flashcardsByLang],
+    [homeLanguage, draftLanguage, draftProfile, speed, theme, activeSessionId, sessions, flashcardsByLang],
     () => {
       // Strip volatile fields (blob URLs, pending flags) that don't survive reload.
       const cleanSessions = sessions.map((s) => ({
@@ -242,6 +279,7 @@ export const usePracticeStore = defineStore('practice', () => {
           draftLanguage: draftLanguage.value,
           draftProfile: draftProfile.value,
           speed: speed.value,
+          theme: theme.value,
           activeSessionId: activeSessionId.value,
           sessions: cleanSessions,
           flashcards: flashcardsByLang,
@@ -560,6 +598,9 @@ export const usePracticeStore = defineStore('practice', () => {
     draftProfileInfo,
     // preference
     speed,
+    theme,
+    resolvedTheme,
+    showSettings,
     // status
     status,
     errorMessage,
@@ -597,6 +638,9 @@ export const usePracticeStore = defineStore('practice', () => {
     setDraftLanguage,
     setDraftProfile,
     setSpeed,
+    setTheme,
+    openSettings,
+    closeSettings,
     startSession,
     openSession,
     leaveSession,

@@ -108,7 +108,7 @@ watch(
 .review-btn {
   width: 100%;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 10px;
   padding: 10px;
@@ -167,7 +167,7 @@ li {
 .card {
   width: 100%;
   min-height: 130px;
-  background: linear-gradient(160deg, var(--panel-2), #2a3050);
+  background: linear-gradient(160deg, var(--card-a), var(--card-b));
   border: 1px solid var(--border);
   border-radius: 14px;
   display: flex;
@@ -210,11 +210,11 @@ li {
   font-size: 15px;
 }
 .again {
-  background: rgba(255, 93, 108, 0.18);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 .known {
-  background: rgba(74, 214, 160, 0.18);
+  background: var(--success-soft);
   color: var(--accent-2);
 }
 .progress {

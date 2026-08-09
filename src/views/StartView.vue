@@ -24,10 +24,11 @@ function formatDate(ts: number): string {
   <div class="lobby">
     <header class="brand">
       <span class="logo">🗣️</span>
-      <div>
+      <div class="brand-text">
         <h1>Language Practice</h1>
         <p>Low-pressure speaking practice — pick who you want to talk to.</p>
       </div>
+      <button class="gear" title="Settings" @click="store.openSettings()">⚙︎</button>
     </header>
 
     <!-- Page language scope: only languages you've actually practised. Filters
@@ -216,6 +217,25 @@ function formatDate(ts: number): string {
   align-items: center;
   gap: 14px;
 }
+.brand-text {
+  flex: 1;
+  min-width: 0;
+}
+.gear {
+  flex-shrink: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  font-size: 17px;
+  line-height: 1;
+}
+.gear:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
 .logo {
   font-size: 38px;
 }
@@ -249,7 +269,7 @@ function formatDate(ts: number): string {
 .pill.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .starter,
@@ -316,7 +336,7 @@ function formatDate(ts: number): string {
 }
 .review-btn {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 10px;
   padding: 9px 16px;
@@ -386,14 +406,14 @@ function formatDate(ts: number): string {
 .start {
   margin-top: 18px;
   align-self: center;
-  background: linear-gradient(145deg, var(--accent), #4a6bff);
-  color: #fff;
+  background: linear-gradient(145deg, var(--accent-grad-a), var(--accent-grad-b));
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   padding: 13px 22px;
   font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(76, 108, 255, 0.35);
+  box-shadow: 0 8px 24px var(--accent-glow);
 }
 .start:disabled {
   opacity: 0.5;
@@ -472,11 +492,11 @@ ul {
   font-weight: 600;
 }
 .tag.done {
-  background: rgba(74, 214, 160, 0.18);
+  background: var(--success-soft);
   color: var(--accent-2);
 }
 .tag.active {
-  background: rgba(108, 140, 255, 0.2);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 .del {

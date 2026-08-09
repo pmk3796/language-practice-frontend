@@ -224,7 +224,7 @@ watch(
 
 .row.user .bubble {
   background: var(--sent);
-  color: white;
+  color: var(--on-accent);
   border-bottom-right-radius: 4px;
 }
 
@@ -244,14 +244,11 @@ watch(
 }
 
 .word:hover {
-  background: rgba(108, 140, 255, 0.25);
+  background: var(--word-hover);
 }
 
-/* The deep-indigo user bubble lets the same green flip/underline pop, so no
-   per-bubble colour overrides are needed — just a slightly stronger hover tint. */
-.row.user .word:hover {
-  background: rgba(108, 140, 255, 0.4);
-}
+/* Your indigo bubble keeps its on-dark word tokens in both themes — main.css
+   scopes them to .row.user, so no per-bubble rules are needed here. */
 
 .add-chip {
   position: absolute;
@@ -269,8 +266,8 @@ watch(
   justify-content: center;
   /* White chip so it stays legible on both the dark assistant bubble and the
      blue user bubble (which is the same colour as --accent). */
-  background: #fff;
-  color: var(--accent);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
@@ -299,15 +296,15 @@ watch(
 }
 
 .word.flipped {
-  background: rgba(74, 214, 160, 0.22);
-  color: var(--accent-2);
+  background: var(--flip-bg);
+  color: var(--flip-fg);
 }
 
 /* Saved words get a thick green underline under the core only (not the
    surrounding punctuation), as a clean, always-on indicator. */
 .word.saved .tok-core {
   text-decoration: underline;
-  text-decoration-color: var(--accent-2);
+  text-decoration-color: var(--vocab-underline);
   text-decoration-thickness: 3px;
   text-underline-offset: 6px;
   text-decoration-skip-ink: none;
@@ -322,7 +319,7 @@ watch(
   flex-direction: column;
   gap: 4px;
   padding-right: 9px;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid var(--divider);
 }
 
 /* You: actions are on the right, so the separator flips to their left. */
@@ -330,7 +327,7 @@ watch(
   padding-right: 0;
   border-right: none;
   padding-left: 9px;
-  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  border-left: 1px solid var(--divider);
 }
 
 .act-btn {
@@ -339,8 +336,8 @@ watch(
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--tint);
+  border: 1px solid var(--divider);
   border-radius: 7px;
   color: inherit;
   font-size: 13px;
@@ -348,8 +345,8 @@ watch(
 }
 
 .act-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.34);
+  background: var(--tint-strong);
+  border-color: var(--divider);
 }
 
 .act-btn:disabled {
@@ -359,7 +356,7 @@ watch(
 .act-btn .spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  border: 2px solid var(--divider);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: act-spin 0.7s linear infinite;
@@ -397,7 +394,7 @@ watch(
   height: 14px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10px;
   vertical-align: middle;
 }

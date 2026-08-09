@@ -198,7 +198,7 @@ async function speak(text: string) {
           <span v-else>🔊</span>
         </button>
         <div class="front">{{ current.target }}</div>
-        <div v-if="revealed" class="back">
+        <div v-if="revealed" class="answer">
           <div class="en">{{ current.english }}</div>
           <div class="meta">
             <span v-if="current.topic" class="tag">{{ current.topic }}</span>
@@ -375,7 +375,7 @@ async function speak(text: string) {
 }
 .segmented button.on {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* Optional filters: outline pills that fill when selected. */
@@ -399,7 +399,7 @@ async function speak(text: string) {
 .chip.on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .hint {
   color: var(--muted);
@@ -424,14 +424,14 @@ async function speak(text: string) {
 }
 
 .start {
-  background: linear-gradient(145deg, var(--accent), #4a6bff);
-  color: #fff;
+  background: linear-gradient(145deg, var(--accent-grad-a), var(--accent-grad-b));
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   padding: 13px 22px;
   font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(76, 108, 255, 0.35);
+  box-shadow: 0 8px 24px var(--accent-glow);
 }
 .start:disabled {
   opacity: 0.5;
@@ -456,7 +456,7 @@ async function speak(text: string) {
   position: relative;
   width: min(560px, 92vw);
   min-height: 240px;
-  background: linear-gradient(160deg, var(--panel-2), #2a3050);
+  background: linear-gradient(160deg, var(--card-a), var(--card-b));
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -480,7 +480,7 @@ async function speak(text: string) {
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--tint);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 16px;
@@ -489,7 +489,7 @@ async function speak(text: string) {
   justify-content: center;
 }
 .say:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--tint-strong);
 }
 .front {
   font-size: 34px;
@@ -497,7 +497,7 @@ async function speak(text: string) {
   color: var(--accent-2);
   text-align: center;
 }
-.back {
+.answer {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -511,7 +511,7 @@ async function speak(text: string) {
   gap: 8px;
 }
 .tag {
-  background: rgba(108, 140, 255, 0.18);
+  background: var(--accent-soft);
   color: var(--accent);
   border-radius: 999px;
   padding: 3px 10px;
@@ -519,7 +519,7 @@ async function speak(text: string) {
   font-weight: 600;
 }
 .tag.pos {
-  background: rgba(74, 214, 160, 0.16);
+  background: var(--success-soft);
   color: var(--accent-2);
 }
 .flip-hint {
@@ -540,11 +540,11 @@ async function speak(text: string) {
   font-size: 16px;
 }
 .again {
-  background: rgba(255, 93, 108, 0.18);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 .known {
-  background: rgba(74, 214, 160, 0.18);
+  background: var(--success-soft);
   color: var(--accent-2);
 }
 .grade-placeholder {

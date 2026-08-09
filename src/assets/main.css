@@ -1,17 +1,127 @@
-:root {
+/**
+ * Theme tokens.
+ *
+ * Every colour in the app comes from here. `data-theme` is set on <html> by the
+ * store (auto resolves to light/dark from the OS), so components never need to
+ * know which theme is active.
+ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* surfaces */
   --bg: #0f1220;
+  --bg-glow: #1c2140;
   --panel: #1a1e30;
   --panel-2: #232840;
+  --menu-bg: #1c2138;
   --border: #2e3450;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  --overlay: rgba(6, 8, 16, 0.72);
+
+  /* text */
   --text: #e7e9f3;
   --muted: #9aa0bd;
+
+  /* brand */
   --accent: #6c8cff;
+  --accent-grad-a: #6c8cff;
+  --accent-grad-b: #4a6bff;
+  --accent-glow: rgba(76, 108, 255, 0.35);
   --accent-2: #4ad6a0;
-  --sent: #4b45c9; /* user (sent) message bubble — deep indigo so green pops */
+  --sent: #4b45c9; /* your chat bubble — stays dark in BOTH themes */
   --danger: #ff5d6c;
   --warn: #ffcf5c;
+  --on-accent: #ffffff;
+
+  /* neutral overlays on top of a surface */
+  --tint: rgba(255, 255, 255, 0.06);
+  --tint-strong: rgba(255, 255, 255, 0.14);
+  --divider: rgba(255, 255, 255, 0.15);
+  --focus-ring: rgba(108, 140, 255, 0.28);
+
+  /* conversation word states */
+  --word-hover: rgba(108, 140, 255, 0.25);
+  --vocab-underline: #4ad6a0;
+  --chip-bg: #ffffff;
+  --chip-fg: #4a5fd0;
+  --flip-bg: rgba(74, 214, 160, 0.22);
+  --flip-fg: #4ad6a0;
+
+  /* flashcard face */
+  --card-a: #232840;
+  --card-b: #2a3050;
+
+  /* status tints */
+  --danger-soft: rgba(255, 93, 108, 0.18);
+  --success-soft: rgba(74, 214, 160, 0.18);
+  --accent-soft: rgba(108, 140, 255, 0.18);
+  --warn-soft: rgba(255, 207, 92, 0.14);
+
   --radius: 14px;
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eef1f8;
+  --bg-glow: #dfe6fb;
+  --panel: #ffffff;
+  --panel-2: #f3f5fb;
+  --menu-bg: #ffffff;
+  --border: #d9dfec;
+  --shadow: 0 8px 24px rgba(23, 27, 44, 0.1);
+  --overlay: rgba(23, 27, 44, 0.38);
+
+  --text: #171b2c;
+  --muted: #5b657f;
+
+  /* Darkened so they stay legible on white. */
+  --accent: #4a5fd0;
+  --accent-grad-a: #5a6fdd;
+  --accent-grad-b: #4050c4;
+  --accent-glow: rgba(74, 95, 208, 0.28);
+  --accent-2: #12946a;
+  --sent: #4b45c9;
+  --danger: #d32f3f;
+  --warn: #9a6b00;
+  --on-accent: #ffffff;
+
+  --tint: rgba(23, 27, 44, 0.05);
+  --tint-strong: rgba(23, 27, 44, 0.1);
+  --divider: rgba(23, 27, 44, 0.12);
+  --focus-ring: rgba(74, 95, 208, 0.25);
+
+  --word-hover: rgba(74, 95, 208, 0.16);
+  --vocab-underline: #12946a;
+  --chip-bg: #4a5fd0;
+  --chip-fg: #ffffff;
+  --flip-bg: rgba(18, 148, 106, 0.16);
+  --flip-fg: #0e7a58;
+
+  --card-a: #ffffff;
+  --card-b: #eef1fa;
+
+  --danger-soft: rgba(211, 47, 63, 0.12);
+  --success-soft: rgba(18, 148, 106, 0.14);
+  --accent-soft: rgba(74, 95, 208, 0.12);
+  --warn-soft: rgba(154, 107, 0, 0.14);
+}
+
+/**
+ * Your own chat bubble is a saturated indigo in both themes, so everything
+ * drawn on top of it keeps its "on dark" treatment even in light mode.
+ */
+.row.user {
+  --tint: rgba(255, 255, 255, 0.1);
+  --tint-strong: rgba(255, 255, 255, 0.2);
+  --divider: rgba(255, 255, 255, 0.28);
+  --word-hover: rgba(255, 255, 255, 0.28);
+  --vocab-underline: #5fe8b4;
+  --flip-bg: rgba(255, 255, 255, 0.26);
+  --flip-fg: #ffffff;
+  --chip-bg: #ffffff;
+  --chip-fg: #4b45c9;
 }
 
 * {
@@ -26,10 +136,11 @@ body {
 }
 
 body {
-  background: radial-gradient(1200px 600px at 20% -10%, #1c2140 0%, var(--bg) 60%);
+  background: radial-gradient(1200px 600px at 20% -10%, var(--bg-glow) 0%, var(--bg) 60%);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #app {

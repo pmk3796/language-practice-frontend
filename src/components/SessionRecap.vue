@@ -85,7 +85,7 @@ function addAll() {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(6, 8, 16, 0.72);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,7 +138,7 @@ header h2 {
 }
 .retry {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: 10px;
   padding: 8px 16px;
@@ -237,8 +237,8 @@ header h2 {
 
 .done {
   width: 100%;
-  background: linear-gradient(145deg, var(--accent), #4a6bff);
-  color: #fff;
+  background: linear-gradient(145deg, var(--accent-grad-a), var(--accent-grad-b));
+  color: var(--on-accent);
   border: none;
   border-radius: 12px;
   padding: 12px;
