@@ -1,8 +1,82 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import type { ThemeChoice } from '@/stores/practice'
 
 const store = usePracticeStore()
+
+// Key management only exists in the desktop app (the browser build has no
+// bridge, and its key lives in the backend's .env).
+const desktop = (window as any).desktopAPI
+const maskedKey = ref('')
+const editingKey = ref(false)
+const keyInput = ref('')
+const keyBusy = ref(false)
+const keyStatus = ref('')
+const keyStatusKind = ref<'err' | 'ok' | 'busy' | ''>('')
+
+onMounted(async () => {
+  if (!desktop) return
+  try {
+    maskedKey.value = (await desktop.getKeyInfo())?.masked || ''
+  } catch {
+    /* ignore */
+  }
+})
+
+function startEditingKey() {
+  editingKey.value = true
+  keyInput.value = ''
+  keyStatus.value = ''
+  keyStatusKind.value = ''
+}
+
+function cancelEditingKey() {
+  editingKey.value = false
+  keyStatus.value = ''
+  keyStatusKind.value = ''
+}
+
+async function saveKey() {
+  const key = keyInput.value.trim()
+  if (!key) {
+    keyStatus.value = 'Paste your new key first.'
+    keyStatusKind.value = 'err'
+    return
+  }
+  keyBusy.value = true
+  keyStatus.value = 'Checking your key…'
+  keyStatusKind.value = 'busy'
+  try {
+    const check = await desktop.validateKey(key)
+    if (!check.ok) {
+      keyStatus.value = check.message
+      keyStatusKind.value = 'err'
+      return
+    }
+    const saved = await desktop.updateKey(key)
+    if (!saved.ok) {
+      keyStatus.value = saved.message
+      keyStatusKind.value = 'err'
+      return
+    }
+    maskedKey.value = saved.masked
+    editingKey.value = false
+    keyStatus.value = 'Key updated — it applies right away.'
+    keyStatusKind.value = 'ok'
+    // Clear any prior billing/auth error now that a good key is in place.
+    if (store.errorCode === 'insufficient_quota' || store.errorCode === 'invalid_api_key') {
+      store.status = 'idle'
+      store.errorMessage = ''
+      store.errorCode = ''
+    }
+  } catch {
+    keyStatus.value = "Couldn't update the key. Please try again."
+    keyStatusKind.value = 'err'
+  } finally {
+    keyBusy.value = false
+  }
+}
 
 const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
   { value: 'light', label: 'Light', icon: '☀️' },
@@ -57,6 +131,38 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
             </button>
           </div>
         </div>
+      </section>
+
+      <section v-if="desktop" class="group">
+        <h3>OpenAI key</h3>
+
+        <div v-if="!editingKey" class="row">
+          <div class="row-label">
+            <div class="name mono">{{ maskedKey || 'Not set' }}</div>
+            <div class="hint">Used for transcription, replies and speech</div>
+          </div>
+          <button class="ghost" @click="startEditingKey">Change key</button>
+        </div>
+
+        <div v-else class="key-edit">
+          <input
+            v-model="keyInput"
+            type="password"
+            placeholder="sk-..."
+            spellcheck="false"
+            autocomplete="off"
+            :disabled="keyBusy"
+            @keydown.enter="saveKey"
+          />
+          <div class="key-actions">
+            <button class="ghost" :disabled="keyBusy" @click="cancelEditingKey">Cancel</button>
+            <button class="done" :disabled="keyBusy" @click="saveKey">
+              {{ keyBusy ? 'Checking…' : 'Save key' }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="keyStatus" class="key-status" :class="keyStatusKind">{{ keyStatus }}</p>
       </section>
 
       <footer>
@@ -145,6 +251,66 @@ header h2 {
 }
 .hint.cap {
   text-transform: capitalize;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+}
+.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.ghost:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.key-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.key-edit input {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none;
+}
+.key-edit input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.key-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.key-status {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.key-status.err {
+  color: var(--danger);
+}
+.key-status.ok {
+  color: var(--accent-2);
+}
+.key-status.busy {
+  color: var(--muted);
 }
 
 .segmented {
