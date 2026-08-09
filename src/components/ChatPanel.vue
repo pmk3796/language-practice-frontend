@@ -137,6 +137,8 @@ function clearSelection() {
 
 function togglePhrase() {
   store.toggleFlashcard(phraseTarget.value, phraseEnglish.value)
+  // The action is done — leaving the run highlighted reads as still-selected.
+  clearSelection()
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -145,13 +147,21 @@ function onKeydown(e: KeyboardEvent) {
 function onPointerUp() {
   pointerDown = false
 }
+// Clicking away from the words (or the phrase bar) drops the selection.
+function onDocMouseDown(e: MouseEvent) {
+  const el = e.target as HTMLElement | null
+  if (el?.closest('.word') || el?.closest('.phrase-bar')) return
+  clearSelection()
+}
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('mouseup', onPointerUp)
+  window.addEventListener('mousedown', onDocMouseDown)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('mouseup', onPointerUp)
+  window.removeEventListener('mousedown', onDocMouseDown)
 })
 
 // Tracks which assistant words are currently flipped to English, keyed by
