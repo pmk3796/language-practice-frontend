@@ -2,6 +2,7 @@
 import { usePracticeStore } from '@/stores/practice'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import ProfileSelector from '@/components/ProfileSelector.vue'
+import LevelSelector from '@/components/LevelSelector.vue'
 import SettingsButton from '@/components/SettingsButton.vue'
 import type { Session } from '@/types'
 
@@ -59,11 +60,13 @@ function formatDate(ts: number): string {
           <label>Language</label>
           <span class="chip">{{ store.homeLanguageInfo.flag }} {{ store.homeLanguageInfo.name }}</span>
         </div>
+        <LevelSelector />
       </div>
       <p v-if="store.draftProfileInfo && store.newSessionLanguageInfo" class="preview">
         {{ store.draftProfileInfo.emoji }} You'll talk with a
         <strong>{{ store.draftProfileInfo.name }}</strong> in
-        <strong>{{ store.newSessionLanguageInfo.name }}</strong> — {{ store.draftProfileInfo.description }}.
+        <strong>{{ store.newSessionLanguageInfo.name }}</strong><template v-if="store.activeLevel">
+        at <strong>{{ store.activeLevel.code }}</strong></template> — {{ store.draftProfileInfo.description }}.
       </p>
       <button class="start" :disabled="!store.languages.length" @click="store.startSession()">
         Start conversation →

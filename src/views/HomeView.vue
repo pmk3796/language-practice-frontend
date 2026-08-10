@@ -24,6 +24,9 @@ const store = usePracticeStore()
         <span v-if="store.activeLanguage" class="chip">
           {{ store.activeLanguage.flag }} {{ store.activeLanguage.name }}
         </span>
+        <span v-if="store.activeLevel" class="chip" :title="store.activeLevel.name">
+          {{ store.activeLevel.code }}
+        </span>
         <span v-if="store.isArchived" class="chip archived">📁 Archived</span>
       </div>
 

@@ -1,4 +1,4 @@
-import type { Correction, LanguageOption, ProfileOption, Recap, Translation, WordPair } from '@/types'
+import type { Correction, LanguageOption, LevelOption, ProfileOption, Recap, Translation, WordPair } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
@@ -34,6 +34,12 @@ export async function requestRecap(
 export async function fetchLanguages(): Promise<{ default: string; languages: LanguageOption[] }> {
   const res = await fetch(`${BASE}/api/languages`)
   if (!res.ok) throw new Error('Could not load languages')
+  return res.json()
+}
+
+export async function fetchLevels(): Promise<{ default: string; levels: LevelOption[] }> {
+  const res = await fetch(`${BASE}/api/levels`)
+  if (!res.ok) throw new Error('Could not load levels')
   return res.json()
 }
 
@@ -123,6 +129,7 @@ export async function streamConversation(
   filename: string,
   language: string,
   profile: string,
+  level: string,
   speed: 'slow' | 'normal',
   history: HistoryTurn[],
   cb: StreamCallbacks,
@@ -131,6 +138,7 @@ export async function streamConversation(
   form.append('audio', audio, filename)
   form.append('language', language)
   form.append('profile', profile)
+  form.append('level', level)
   form.append('speed', speed)
   form.append('history', JSON.stringify(history))
 

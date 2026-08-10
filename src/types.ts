@@ -22,6 +22,13 @@ export interface LanguageOption {
   flag: string
 }
 
+export interface LevelOption {
+  id: string
+  code: string
+  name: string
+  blurb: string
+}
+
 export interface ProfileOption {
   id: string
   name: string

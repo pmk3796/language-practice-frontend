@@ -4,11 +4,13 @@ import type {
   ChatMessage,
   Flashcard,
   LanguageOption,
+  LevelOption,
   ProfileOption,
   Session,
 } from '@/types'
 import {
   fetchLanguages,
+  fetchLevels,
   fetchProfiles,
   requestRecap,
   requestTags,
@@ -58,6 +60,8 @@ interface Persisted {
   speed: SpeechSpeed
   theme: ThemeChoice
   palette: PaletteId
+  // CEFR level per language — you're rarely the same level in two languages.
+  levels: Record<string, string>
   activeSessionId: string | null
   sessions: Session[]
   // Flashcards are your vocabulary, kept per language and shared across sessions.
@@ -92,6 +96,7 @@ function load(): Persisted {
         speed: p.speed === 'slow' ? 'slow' : 'normal',
         theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'auto',
         palette: p.palette === 'confident' ? 'confident' : 'calm',
+        levels: p.levels || {},
         activeSessionId: p.activeSessionId ?? null,
         sessions: Array.isArray(p.sessions) ? p.sessions : [],
         flashcards: p.flashcards || {},
@@ -107,6 +112,7 @@ function load(): Persisted {
     speed: 'normal',
     theme: 'auto',
     palette: 'calm',
+    levels: {},
     activeSessionId: null,
     sessions: [],
     flashcards: migrateFlashcardsFromV1(),
@@ -119,6 +125,9 @@ export const usePracticeStore = defineStore('practice', () => {
   // Config (from backend)
   const languages = ref<LanguageOption[]>([])
   const profiles = ref<ProfileOption[]>([])
+  const levels = ref<LevelOption[]>([])
+  const defaultLevel = ref('a2')
+  const levelByLang = reactive<Record<string, string>>(persisted.levels)
 
   // Home page language scope: 'all' or a specific language code.
   const homeLanguage = ref<HomeScope>(persisted.homeLanguage)
@@ -259,6 +268,15 @@ export const usePracticeStore = defineStore('practice', () => {
 
   const sortedSessions = computed(() => [...sessions].sort((a, b) => b.createdAt - a.createdAt))
 
+  // Level follows the language in play: the active session's, or the one a new
+  // session would start in.
+  const levelLangCode = computed(() => activeSession.value?.language ?? newSessionLanguage.value)
+  const level = computed(() => levelByLang[levelLangCode.value] ?? defaultLevel.value)
+  const activeLevel = computed(() => levels.value.find((l) => l.id === level.value))
+  function setLevel(id: string) {
+    levelByLang[levelLangCode.value] = id
+  }
+
   // Home page is scoped by homeLanguage; 'all' shows everything.
   const filteredSessions = computed(() =>
     homeLanguage.value === 'all'
@@ -289,7 +307,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ----------------------------------------------------------
   watch(
-    [homeLanguage, draftLanguage, draftProfile, speed, theme, palette, activeSessionId, sessions, flashcardsByLang],
+    [homeLanguage, draftLanguage, draftProfile, speed, theme, palette, levelByLang, activeSessionId, sessions, flashcardsByLang],
     () => {
       // Strip volatile fields (blob URLs, pending flags) that don't survive reload.
       const cleanSessions = sessions.map((s) => ({
@@ -305,6 +323,7 @@ export const usePracticeStore = defineStore('practice', () => {
           speed: speed.value,
           theme: theme.value,
           palette: palette.value,
+          levels: levelByLang,
           activeSessionId: activeSessionId.value,
           sessions: cleanSessions,
           flashcards: flashcardsByLang,
@@ -324,6 +343,12 @@ export const usePracticeStore = defineStore('practice', () => {
       homeLanguage.value = 'all'
     }
   }
+  async function loadLevels() {
+    const res = await fetchLevels()
+    levels.value = res.levels
+    defaultLevel.value = res.default
+  }
+
   async function loadProfiles() {
     const res = await fetchProfiles()
     profiles.value = res.profiles
@@ -455,7 +480,7 @@ export const usePracticeStore = defineStore('practice', () => {
     let userMsg: ChatMessage | null = null
 
     try {
-      await streamConversation(blob, filename, s.language, s.profile, speed.value, history, {
+      await streamConversation(blob, filename, s.language, s.profile, level.value, speed.value, history, {
         onTranscript: ({ userMessage }) => {
           // Keep the learner's own recording so they can replay what they said.
           // It's their real audio, so it only lasts the session (not persisted).
@@ -609,6 +634,9 @@ export const usePracticeStore = defineStore('practice', () => {
     // config
     languages,
     profiles,
+    levels,
+    level,
+    activeLevel,
     // home scope
     homeLanguage,
     homeLanguageInfo,
@@ -660,6 +688,8 @@ export const usePracticeStore = defineStore('practice', () => {
     // actions
     loadLanguages,
     loadProfiles,
+    loadLevels,
+    setLevel,
     setHomeLanguage,
     setDraftLanguage,
     setDraftProfile,

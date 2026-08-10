@@ -12,6 +12,7 @@ onMounted(() => {
   // Non-fatal: the selectors just won't populate if the backend is down.
   store.loadLanguages().catch(() => {})
   store.loadProfiles().catch(() => {})
+  store.loadLevels().catch(() => {})
 })
 </script>
 

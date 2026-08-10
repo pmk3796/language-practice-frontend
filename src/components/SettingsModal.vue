@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 import { PALETTES, type ThemeChoice } from '@/stores/practice'
+import LevelSelector from '@/components/LevelSelector.vue'
 
 const store = usePracticeStore()
 
@@ -134,6 +135,20 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
               <span class="pname">{{ p.name }}</span>
             </button>
           </div>
+        </div>
+      </section>
+
+      <section v-if="store.levels.length" class="group">
+        <h3>Practice</h3>
+        <div class="row">
+          <div class="row-label">
+            <div class="name">Difficulty</div>
+            <div class="hint">
+              How your partner speaks in
+              {{ store.activeLanguage?.name || 'this language' }} — saved per language
+            </div>
+          </div>
+          <LevelSelector />
         </div>
       </section>
 
