@@ -444,17 +444,21 @@ watch(
   /* Sits clearly below the single-word underline above it. */
   bottom: -4px;
   height: 3px;
-  border-radius: 2px;
+  /* Square ends, like the text-decoration underline above, so a phrase line and
+     a word underline that begin on the same word line up exactly. */
+  border-radius: 0;
   background: var(--vocab-underline);
   pointer-events: none;
 }
-/* Tuck the ends in: this both separates two adjacent runs and stops a phrase
-   line from starting at exactly the same x as the word underline above it. */
+/* Start flush with the text (the word's 2px padding would otherwise push the
+   bar left of where the word underline begins). */
 .phrase-line.run-start {
-  left: 7px;
+  left: 2px;
 }
+/* Only the end is tucked in — that's what opens a gap between two adjacent
+   runs, without disturbing the aligned start. */
 .phrase-line.run-end {
-  right: 5px;
+  right: 6px;
 }
 
 .word {
