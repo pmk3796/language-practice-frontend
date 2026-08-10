@@ -16,6 +16,20 @@ const keyBusy = ref(false)
 const keyStatus = ref('')
 const keyStatusKind = ref<'err' | 'ok' | 'busy' | ''>('')
 
+/**
+ * The values as they were when this dialog opened. Clicking through options to
+ * compare them otherwise loses your starting point, so each row offers a way
+ * back to where it was.
+ */
+const opened = ref({ theme: store.theme, palette: store.palette, speed: store.speed, level: store.level })
+onMounted(() => {
+  opened.value = { theme: store.theme, palette: store.palette, speed: store.speed, level: store.level }
+})
+
+const levelCode = (id: string) => store.levels.find((l) => l.id === id)?.code ?? id
+const paletteName = (id: string) => PALETTES.find((p) => p.id === id)?.name ?? id
+const themeName = (t: string) => (t === 'auto' ? 'Auto' : t === 'dark' ? 'Dark' : 'Light')
+
 onMounted(async () => {
   if (!desktop) return
   try {
@@ -102,6 +116,9 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
             <div class="hint cap">
               {{ store.theme === 'auto' ? 'Following your system setting' : 'Always ' + store.theme }}
             </div>
+            <button v-if="store.theme !== opened.theme" class="undo" @click="store.setTheme(opened.theme)">
+              ↩ back to {{ themeName(opened.theme) }}
+            </button>
           </div>
           <div class="segmented">
             <button
@@ -119,6 +136,9 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
           <div class="row-label">
             <div class="name">Colour scheme</div>
             <div class="hint">Each scheme has its own light and dark</div>
+            <button v-if="store.palette !== opened.palette" class="undo" @click="store.setPalette(opened.palette)">
+              ↩ back to {{ paletteName(opened.palette) }}
+            </button>
           </div>
           <div class="palettes">
             <button
@@ -147,6 +167,9 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
               How your partner speaks in
               {{ store.activeLanguage?.name || 'this language' }} — saved per language
             </div>
+            <button v-if="store.level !== opened.level" class="undo" @click="store.setLevel(opened.level)">
+              ↩ back to {{ levelCode(opened.level) }}
+            </button>
           </div>
           <LevelSelector compact />
         </div>
@@ -158,6 +181,9 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
           <div class="row-label">
             <div class="name">Speaking speed</div>
             <div class="hint">How fast your practice partner talks</div>
+            <button v-if="store.speed !== opened.speed" class="undo" @click="store.setSpeed(opened.speed)">
+              ↩ back to {{ opened.speed === 'slow' ? 'Slow' : 'Normal' }}
+            </button>
           </div>
           <div class="segmented">
             <button :class="{ on: store.speed === 'slow' }" @click="store.setSpeed('slow')">
@@ -295,6 +321,20 @@ header h2 {
 }
 .hint.cap {
   text-transform: capitalize;
+}
+/* Appears only on a row you've changed, naming the value you started from. */
+.undo {
+  display: inline-block;
+  margin-top: 5px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.undo:hover {
+  text-decoration: underline;
 }
 
 .mono {
