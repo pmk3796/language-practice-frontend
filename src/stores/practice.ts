@@ -180,28 +180,6 @@ export const usePracticeStore = defineStore('practice', () => {
     palette.value = id
   }
 
-  /**
-   * Whether any setting differs from its default. The Reset button keys off
-   * this, so its presence alone answers "have I changed anything?".
-   * Deliberately covers preferences only — never sessions, flashcards or the
-   * API key.
-   */
-  const settingsChanged = computed(
-    () =>
-      theme.value !== 'auto' ||
-      palette.value !== 'calm' ||
-      speed.value !== 'normal' ||
-      Object.keys(levelByLang).length > 0,
-  )
-
-  function resetSettings() {
-    theme.value = 'auto'
-    palette.value = 'calm'
-    speed.value = 'normal'
-    // Drop every per-language level override, back to the server default.
-    for (const key of Object.keys(levelByLang)) delete levelByLang[key]
-  }
-
   // Settings dialog
   const showSettings = ref(false)
   const openSettings = () => (showSettings.value = true)
@@ -677,7 +655,6 @@ export const usePracticeStore = defineStore('practice', () => {
     resolvedTheme,
     palette,
     showSettings,
-    settingsChanged,
     // status
     status,
     errorMessage,
@@ -719,7 +696,6 @@ export const usePracticeStore = defineStore('practice', () => {
     setSpeed,
     setTheme,
     setPalette,
-    resetSettings,
     openSettings,
     closeSettings,
     startSession,
