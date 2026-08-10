@@ -232,7 +232,9 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
       </section>
 
       <footer>
-        <span class="privacy">🔒 Everything is stored on this device.</span>
+        <!-- Settings apply as you change them; there is nothing to commit, so
+             say so rather than implying a save/cancel model. -->
+        <span class="privacy">Changes save as you make them · 🔒 kept on this device</span>
         <div class="foot-actions">
           <!-- Only shown when something differs from the defaults, so its
                presence tells you at a glance that you've changed something. -->
