@@ -148,7 +148,7 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
               {{ store.activeLanguage?.name || 'this language' }} — saved per language
             </div>
           </div>
-          <LevelSelector />
+          <LevelSelector compact />
         </div>
       </section>
 
