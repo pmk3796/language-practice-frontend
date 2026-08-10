@@ -20,6 +20,13 @@ import { base64ToBlobUrl, playAudio } from '@/lib/audio'
 type SpeechSpeed = 'slow' | 'normal'
 type Status = 'idle' | 'processing' | 'error'
 export type ThemeChoice = 'light' | 'dark' | 'auto'
+export type PaletteId = 'calm' | 'confident'
+
+/** Colour schemes; each one has its own light and dark variant. */
+export const PALETTES: { id: PaletteId; name: string; blurb: string; swatch: string[] }[] = [
+  { id: 'calm', name: 'Calm', blurb: 'Teal and forest green', swatch: ['#0f7a6e', '#2e6f40', '#f6f5f1'] },
+  { id: 'confident', name: 'Confident', blurb: 'Indigo and mint', swatch: ['#6c8cff', '#4ad6a0', '#1a1e30'] },
+]
 
 const STORAGE_KEY = 'language-practice:v2'
 const MAX_HISTORY_TURNS = 10
@@ -50,6 +57,7 @@ interface Persisted {
   draftProfile: string
   speed: SpeechSpeed
   theme: ThemeChoice
+  palette: PaletteId
   activeSessionId: string | null
   sessions: Session[]
   // Flashcards are your vocabulary, kept per language and shared across sessions.
@@ -83,6 +91,7 @@ function load(): Persisted {
         draftProfile: p.draftProfile || 'free',
         speed: p.speed === 'slow' ? 'slow' : 'normal',
         theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'auto',
+        palette: p.palette === 'confident' ? 'confident' : 'calm',
         activeSessionId: p.activeSessionId ?? null,
         sessions: Array.isArray(p.sessions) ? p.sessions : [],
         flashcards: p.flashcards || {},
@@ -97,6 +106,7 @@ function load(): Persisted {
     draftProfile: 'free',
     speed: 'normal',
     theme: 'auto',
+    palette: 'calm',
     activeSessionId: null,
     sessions: [],
     flashcards: migrateFlashcardsFromV1(),
@@ -146,6 +156,19 @@ export const usePracticeStore = defineStore('practice', () => {
   )
   function setTheme(choice: ThemeChoice) {
     theme.value = choice
+  }
+
+  // Colour scheme, independent of light/dark.
+  const palette = ref<PaletteId>(persisted.palette)
+  watch(
+    palette,
+    (p) => {
+      if (typeof document !== 'undefined') document.documentElement.dataset.palette = p
+    },
+    { immediate: true },
+  )
+  function setPalette(id: PaletteId) {
+    palette.value = id
   }
 
   // Settings dialog
@@ -266,7 +289,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ----------------------------------------------------------
   watch(
-    [homeLanguage, draftLanguage, draftProfile, speed, theme, activeSessionId, sessions, flashcardsByLang],
+    [homeLanguage, draftLanguage, draftProfile, speed, theme, palette, activeSessionId, sessions, flashcardsByLang],
     () => {
       // Strip volatile fields (blob URLs, pending flags) that don't survive reload.
       const cleanSessions = sessions.map((s) => ({
@@ -281,6 +304,7 @@ export const usePracticeStore = defineStore('practice', () => {
           draftProfile: draftProfile.value,
           speed: speed.value,
           theme: theme.value,
+          palette: palette.value,
           activeSessionId: activeSessionId.value,
           sessions: cleanSessions,
           flashcards: flashcardsByLang,
@@ -601,6 +625,7 @@ export const usePracticeStore = defineStore('practice', () => {
     speed,
     theme,
     resolvedTheme,
+    palette,
     showSettings,
     // status
     status,
@@ -640,6 +665,7 @@ export const usePracticeStore = defineStore('practice', () => {
     setDraftProfile,
     setSpeed,
     setTheme,
+    setPalette,
     openSettings,
     closeSettings,
     startSession,

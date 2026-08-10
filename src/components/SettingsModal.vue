@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
-import type { ThemeChoice } from '@/stores/practice'
+import { PALETTES, type ThemeChoice } from '@/stores/practice'
 
 const store = usePracticeStore()
 
@@ -110,6 +110,28 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
               @click="store.setTheme(t.value)"
             >
               <span class="ic">{{ t.icon }}</span>{{ t.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="row palette-row">
+          <div class="row-label">
+            <div class="name">Colour scheme</div>
+            <div class="hint">Each scheme has its own light and dark</div>
+          </div>
+          <div class="palettes">
+            <button
+              v-for="p in PALETTES"
+              :key="p.id"
+              class="palette"
+              :class="{ on: store.palette === p.id }"
+              :title="p.blurb"
+              @click="store.setPalette(p.id)"
+            >
+              <span class="chips">
+                <span v-for="(c, i) in p.swatch" :key="i" class="chip" :style="{ background: c }" />
+              </span>
+              <span class="pname">{{ p.name }}</span>
             </button>
           </div>
         </div>
@@ -311,6 +333,47 @@ header h2 {
 }
 .key-status.busy {
   color: var(--muted);
+}
+
+.palette-row {
+  margin-top: 16px;
+}
+.palettes {
+  display: flex;
+  gap: 10px;
+}
+.palette {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 9px 12px;
+  color: var(--muted);
+}
+.palette:hover {
+  color: var(--text);
+}
+.palette.on {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.chips {
+  display: inline-flex;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.chips .chip {
+  width: 16px;
+  height: 16px;
+}
+.pname {
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .segmented {

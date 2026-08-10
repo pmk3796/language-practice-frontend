@@ -1,15 +1,107 @@
 /**
- * Theme tokens.
+ * Theme tokens — two independent axes.
  *
- * Every colour in the app comes from here. `data-theme` is set on <html> by the
- * store (auto resolves to light/dark from the OS), so components never need to
- * know which theme is active.
+ *   data-palette : which colour scheme      (calm | confident)
+ *   data-theme   : light or dark            (auto resolves to one of these)
+ *
+ * Both are set on <html> by the store, so components never check either —
+ * they only ever read tokens.
+ *
+ * Each palette/mode block below defines the same set of *primitives*. Everything
+ * else is derived from them once, in the shared block, so adding a palette means
+ * writing ~16 colours rather than the whole token set.
  */
-:root,
+
+/* ---------------------------------------------------------------- derived */
+:root {
+  /* Button gradients: a touch lighter at the top, darker at the bottom. */
+  --accent-grad-a: color-mix(in srgb, var(--accent) 86%, white);
+  --accent-grad-b: color-mix(in srgb, var(--accent) 86%, black);
+  --accent-glow: color-mix(in srgb, var(--accent) 34%, transparent);
+  --focus-ring: color-mix(in srgb, var(--accent) 30%, transparent);
+  --on-accent: #ffffff;
+
+  /* Soft status washes, always a tint of their own colour. */
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --success-soft: color-mix(in srgb, var(--accent-2) 16%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 15%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 15%, transparent);
+
+  /* Conversation word states. */
+  --word-hover: color-mix(in srgb, var(--accent) 22%, transparent);
+  --vocab-underline: var(--accent-2);
+  --flip-bg: color-mix(in srgb, var(--accent-2) 20%, transparent);
+  --flip-fg: var(--accent-2);
+
+  /* Flashcard face. */
+  --card-a: var(--panel-2);
+  --card-b: color-mix(in srgb, var(--panel-2) 92%, var(--accent));
+
+  --radius: 14px;
+}
+
+/* --------------------------------------------- mode-only (palette-neutral) */
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --tint: rgba(255, 255, 255, 0.06);
+  --tint-strong: rgba(255, 255, 255, 0.14);
+  --divider: rgba(255, 255, 255, 0.15);
+  --chip-bg: #ffffff;
+  --chip-fg: var(--accent);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --tint: rgba(20, 24, 22, 0.05);
+  --tint-strong: rgba(20, 24, 22, 0.1);
+  --divider: rgba(20, 24, 22, 0.12);
+  --chip-bg: var(--accent);
+  --chip-fg: #ffffff;
+}
 
-  /* surfaces */
+/* ------------------------------------------------------- palette: “Calm”  */
+/* Cool teal brand, warm off-white ground, forest green reserved for success. */
+:root,
+:root[data-palette='calm'] {
+  --bg: #101513;
+  --bg-glow: #18241f;
+  --panel: #19201e;
+  --panel-2: #212927;
+  --menu-bg: #1c2422;
+  --border: #2e3735;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --overlay: rgba(6, 12, 10, 0.72);
+  --text: #e8ebe8;
+  --muted: #98a19d;
+  --accent: #2aa694;
+  --accent-2: #68ba7f;
+  --sent: #17635c;
+  --danger: #ff6b6b;
+  --warn: #f0c05a;
+  --on-sent-underline: #8fe3ae;
+}
+:root[data-theme='light'],
+:root[data-palette='calm'][data-theme='light'] {
+  --bg: #f6f5f1;
+  --bg-glow: #e7efea;
+  --panel: #ffffff;
+  --panel-2: #f1f2ee;
+  --menu-bg: #ffffff;
+  --border: #e0e2dc;
+  --shadow: 0 8px 24px rgba(27, 29, 26, 0.1);
+  --overlay: rgba(27, 29, 26, 0.38);
+  --text: #1b1d1a;
+  --muted: #666c67;
+  --accent: #0f7a6e;
+  --accent-2: #2e6f40;
+  --sent: #15625a;
+  --danger: #c4453c;
+  --warn: #8f6400;
+  --on-sent-underline: #8fe3ae;
+}
+
+/* -------------------------------------------------- palette: “Confident”  */
+/* The original indigo/violet scheme. */
+:root[data-palette='confident'] {
   --bg: #0f1220;
   --bg-glow: #1c2140;
   --panel: #1a1e30;
@@ -18,52 +110,16 @@
   --border: #2e3450;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   --overlay: rgba(6, 8, 16, 0.72);
-
-  /* text */
   --text: #e7e9f3;
   --muted: #9aa0bd;
-
-  /* brand */
   --accent: #6c8cff;
-  --accent-grad-a: #6c8cff;
-  --accent-grad-b: #4a6bff;
-  --accent-glow: rgba(76, 108, 255, 0.35);
   --accent-2: #4ad6a0;
-  --sent: #4b45c9; /* your chat bubble — stays dark in BOTH themes */
+  --sent: #4b45c9;
   --danger: #ff5d6c;
   --warn: #ffcf5c;
-  --on-accent: #ffffff;
-
-  /* neutral overlays on top of a surface */
-  --tint: rgba(255, 255, 255, 0.06);
-  --tint-strong: rgba(255, 255, 255, 0.14);
-  --divider: rgba(255, 255, 255, 0.15);
-  --focus-ring: rgba(108, 140, 255, 0.28);
-
-  /* conversation word states */
-  --word-hover: rgba(108, 140, 255, 0.25);
-  --vocab-underline: #4ad6a0;
-  --chip-bg: #ffffff;
-  --chip-fg: #4a5fd0;
-  --flip-bg: rgba(74, 214, 160, 0.22);
-  --flip-fg: #4ad6a0;
-
-  /* flashcard face */
-  --card-a: #232840;
-  --card-b: #2a3050;
-
-  /* status tints */
-  --danger-soft: rgba(255, 93, 108, 0.18);
-  --success-soft: rgba(74, 214, 160, 0.18);
-  --accent-soft: rgba(108, 140, 255, 0.18);
-  --warn-soft: rgba(255, 207, 92, 0.14);
-
-  --radius: 14px;
+  --on-sent-underline: #5fe8b4;
 }
-
-:root[data-theme='light'] {
-  color-scheme: light;
-
+:root[data-palette='confident'][data-theme='light'] {
   --bg: #eef1f8;
   --bg-glow: #dfe6fb;
   --panel: #ffffff;
@@ -72,56 +128,30 @@
   --border: #d9dfec;
   --shadow: 0 8px 24px rgba(23, 27, 44, 0.1);
   --overlay: rgba(23, 27, 44, 0.38);
-
   --text: #171b2c;
   --muted: #5b657f;
-
-  /* Darkened so they stay legible on white. */
   --accent: #4a5fd0;
-  --accent-grad-a: #5a6fdd;
-  --accent-grad-b: #4050c4;
-  --accent-glow: rgba(74, 95, 208, 0.28);
   --accent-2: #12946a;
   --sent: #4b45c9;
   --danger: #d32f3f;
   --warn: #9a6b00;
-  --on-accent: #ffffff;
-
-  --tint: rgba(23, 27, 44, 0.05);
-  --tint-strong: rgba(23, 27, 44, 0.1);
-  --divider: rgba(23, 27, 44, 0.12);
-  --focus-ring: rgba(74, 95, 208, 0.25);
-
-  --word-hover: rgba(74, 95, 208, 0.16);
-  --vocab-underline: #12946a;
-  --chip-bg: #4a5fd0;
-  --chip-fg: #ffffff;
-  --flip-bg: rgba(18, 148, 106, 0.16);
-  --flip-fg: #0e7a58;
-
-  --card-a: #ffffff;
-  --card-b: #eef1fa;
-
-  --danger-soft: rgba(211, 47, 63, 0.12);
-  --success-soft: rgba(18, 148, 106, 0.14);
-  --accent-soft: rgba(74, 95, 208, 0.12);
-  --warn-soft: rgba(154, 107, 0, 0.14);
+  --on-sent-underline: #5fe8b4;
 }
 
 /**
- * Your own chat bubble is a saturated indigo in both themes, so everything
- * drawn on top of it keeps its "on dark" treatment even in light mode.
+ * Your own chat bubble is a saturated fill in every palette, so everything drawn
+ * on top of it keeps its "on dark" treatment even in light mode.
  */
 .row.user {
   --tint: rgba(255, 255, 255, 0.1);
   --tint-strong: rgba(255, 255, 255, 0.2);
   --divider: rgba(255, 255, 255, 0.28);
   --word-hover: rgba(255, 255, 255, 0.28);
-  --vocab-underline: #5fe8b4;
+  --vocab-underline: var(--on-sent-underline);
   --flip-bg: rgba(255, 255, 255, 0.26);
   --flip-fg: #ffffff;
   --chip-bg: #ffffff;
-  --chip-fg: #4b45c9;
+  --chip-fg: var(--sent);
 }
 
 * {
