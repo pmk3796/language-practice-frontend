@@ -219,11 +219,14 @@ const phraseRuns = computed<Record<string, PhraseRun[]>>(() => {
 })
 
 /** The phrase underline covering one word, if any (null when not in a run). */
-function phraseMark(messageId: string, index: number): { last: boolean } | null {
+function phraseMark(
+  messageId: string,
+  index: number,
+): { first: boolean; last: boolean } | null {
   const run = (phraseRuns.value[messageId] ?? []).find(
     (r) => index >= r.start && index <= r.end,
   )
-  return run ? { last: index === run.end } : null
+  return run ? { first: index === run.start, last: index === run.end } : null
 }
 
 // Tracks which assistant words are currently flipped to English, keyed by
@@ -329,7 +332,10 @@ watch(
               ><span
                 v-if="phraseMark(message.id, i)"
                 class="phrase-line"
-                :class="{ bridge: !phraseMark(message.id, i)!.last }"
+                :class="{
+                  'run-start': phraseMark(message.id, i)!.first,
+                  'run-end': phraseMark(message.id, i)!.last,
+                }"
               />
               <button
                 class="add-chip"
@@ -431,8 +437,10 @@ watch(
 
 .phrase-line {
   position: absolute;
+  /* Mid-run words stretch past their own box to cover the space between words,
+     so the phrase reads as one continuous underline. */
   left: 0;
-  right: 0;
+  right: -5px;
   /* Sits clearly below the single-word underline above it. */
   bottom: -4px;
   height: 3px;
@@ -440,10 +448,13 @@ watch(
   background: var(--vocab-underline);
   pointer-events: none;
 }
-/* Words mid-run stretch past their own box to cover the space that separates
-   them, so the phrase reads as one continuous underline. */
-.phrase-line.bridge {
-  right: -5px;
+/* Tuck the ends in: this both separates two adjacent runs and stops a phrase
+   line from starting at exactly the same x as the word underline above it. */
+.phrase-line.run-start {
+  left: 7px;
+}
+.phrase-line.run-end {
+  right: 5px;
 }
 
 .word {
