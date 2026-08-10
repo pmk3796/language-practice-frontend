@@ -213,7 +213,10 @@ label {
   min-width: 100%;
   width: max-content;
   max-width: 320px;
-  max-height: 320px;
+  /* Tall enough that the full option lists fit without a scrollbar appearing
+     for the sake of a few pixels, but still capped so a long list can never
+     run off a short window. */
+  max-height: min(420px, 65vh);
   overflow-y: auto;
   list-style: none;
   margin: 0;
