@@ -204,7 +204,14 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
 
       <footer>
         <span class="privacy">🔒 Everything is stored on this device.</span>
-        <button class="done" @click="store.closeSettings()">Done</button>
+        <div class="foot-actions">
+          <!-- Only shown when something differs from the defaults, so its
+               presence tells you at a glance that you've changed something. -->
+          <button v-if="store.settingsChanged" class="reset" @click="store.resetSettings()">
+            Reset to defaults
+          </button>
+          <button class="done" @click="store.closeSettings()">Done</button>
+        </div>
       </footer>
     </div>
   </div>
@@ -432,6 +439,23 @@ footer {
 .privacy {
   color: var(--muted);
   font-size: 12px;
+}
+.foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+.reset:hover {
+  color: var(--text);
+  border-color: var(--accent);
 }
 .done {
   background: var(--accent);
