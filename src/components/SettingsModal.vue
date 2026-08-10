@@ -158,7 +158,10 @@ const THEMES: { value: ThemeChoice; label: string; icon: string }[] = [
         </div>
       </section>
 
-      <section v-if="store.levels.length" class="group">
+      <!-- Only mid-session: on the home page the start card already has this
+           selector, so repeating it here is redundant and ambiguous about which
+           language it applies to. -->
+      <section v-if="store.levels.length && store.activeSession" class="group">
         <h3>Practice</h3>
         <div class="row">
           <div class="row-label">
