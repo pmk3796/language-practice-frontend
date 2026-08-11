@@ -307,13 +307,13 @@ async function speak(text: string) {
       </div>
 
       <button
-        v-if="canSpeakAnswer && micSupported && !spoken"
+        v-if="canSpeakAnswer && micSupported && !spoken && !revealed"
         class="say-answer"
         :class="{ recording: isRecording }"
         :disabled="checking"
         @click="toggleSpeak"
       >
-        <span v-if="checking" class="spinner" />
+        <template v-if="checking"><span class="spinner" />Checking…</template>
         <template v-else-if="isRecording">■ Stop &amp; check</template>
         <template v-else>🎤 Say it in {{ langInfo?.name || 'the language' }}</template>
       </button>
@@ -665,6 +665,10 @@ async function speak(text: string) {
   font-size: 13px;
 }
 .say-answer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   width: min(560px, 92vw);
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -729,6 +733,8 @@ async function speak(text: string) {
   height: 52px;
 }
 .spinner {
+  display: inline-block;
+  flex-shrink: 0;
   width: 15px;
   height: 15px;
   border: 2px solid var(--border);
