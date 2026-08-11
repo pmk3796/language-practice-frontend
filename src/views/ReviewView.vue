@@ -132,8 +132,8 @@ async function toggleSpeak() {
     const result = checkSpoken(heard, current.value?.target ?? '')
     spoken.value = result
     revealed.value = true
-    // Getting it right is the reward moment — bank it and move on.
-    if (result.correct) setTimeout(() => grade(true), 1100)
+    // No auto-advance: the verdict is worth reading, and the learner moves on
+    // when they're ready.
   } catch {
     spoken.value = { heard: '', correct: false }
     revealed.value = true
@@ -318,7 +318,13 @@ async function speak(text: string) {
         <template v-else>🎤 Say it in {{ langInfo?.name || 'the language' }}</template>
       </button>
 
-      <div v-if="revealed" class="grade">
+      <div v-if="spoken" class="grade">
+        <button class="next" :class="{ good: spoken.correct }" @click="grade(spoken.correct)">
+          Next card →
+        </button>
+      </div>
+
+      <div v-else-if="revealed" class="grade">
         <button class="missed" @click="grade(false)">Missed</button>
         <button class="known" @click="grade(true)">Got it</button>
       </div>
@@ -705,6 +711,15 @@ async function speak(text: string) {
 .missed {
   background: var(--danger-soft);
   color: var(--danger);
+}
+/* Shown instead of the grade pair once a spoken answer has been checked. */
+.next {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.next.good {
+  background: var(--success-soft);
+  color: var(--accent-2);
 }
 .known {
   background: var(--success-soft);
