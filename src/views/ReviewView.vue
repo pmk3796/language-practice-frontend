@@ -606,6 +606,17 @@ async function speak(text: string) {
   font-weight: 700;
   color: var(--accent-2);
   text-align: center;
+  transition: font-size 0.18s ease, color 0.18s ease;
+}
+/* Once revealed, the prompt steps back so the answer — the thing being
+   learned — is the largest thing on the card. */
+.card.revealed .front {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.card.revealed .front.english {
+  color: var(--muted);
 }
 /* The target language stays green wherever it sits; English is plain text. */
 .front.english {
@@ -622,7 +633,10 @@ async function speak(text: string) {
   gap: 10px;
 }
 .en {
-  font-size: 22px;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
 }
 .meta {
   display: flex;
