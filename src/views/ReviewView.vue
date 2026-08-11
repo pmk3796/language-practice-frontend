@@ -56,16 +56,30 @@ function clearFilters() {
 type Phase = 'setup' | 'running' | 'done'
 const phase = ref<Phase>('setup')
 const queue = ref<Flashcard[]>([])
+// Which side each queued card leads with. Fixed when the run starts so a card
+// can't flip direction under you mid-review (matters for 'mixed').
+const leadsWithTarget = ref<boolean[]>([])
 const index = ref(0)
 const revealed = ref(false)
 const gotIt = ref(0)
 const again = ref(0)
 
 const current = computed(() => queue.value[index.value])
+const showTarget = computed(() => leadsWithTarget.value[index.value] ?? true)
+const frontText = computed(() =>
+  showTarget.value ? current.value?.target : current.value?.english,
+)
+const backText = computed(() =>
+  showTarget.value ? current.value?.english : current.value?.target,
+)
 
 function start() {
   if (!filtered.value.length) return
   queue.value = filtered.value.slice()
+  const dir = store.reviewDirection
+  leadsWithTarget.value = queue.value.map(() =>
+    dir === 'mixed' ? Math.random() < 0.5 : dir === 'target',
+  )
   index.value = 0
   revealed.value = false
   gotIt.value = 0
@@ -115,6 +129,33 @@ async function speak(text: string) {
     <!-- SETUP: configure the run -->
     <section v-if="phase === 'setup'" class="setup">
       <div class="setup-card">
+        <!-- Which side leads: recognition (target first) vs production (English first). -->
+        <div class="field">
+          <span class="flabel">Show first</span>
+          <div class="segmented">
+            <button
+              :class="{ on: store.reviewDirection === 'target' }"
+              @click="store.setReviewDirection('target')"
+            >
+              {{ langInfo?.name || 'Target' }}
+            </button>
+            <button
+              :class="{ on: store.reviewDirection === 'english' }"
+              @click="store.setReviewDirection('english')"
+            >
+              English
+            </button>
+            <button
+              :class="{ on: store.reviewDirection === 'mixed' }"
+              @click="store.setReviewDirection('mixed')"
+            >
+              Mixed
+            </button>
+          </div>
+        </div>
+
+        <div class="divider" />
+
         <!-- Sort: single choice (connected segments). -->
         <div class="field">
           <span class="flabel">Sort by</span>
@@ -193,13 +234,19 @@ async function speak(text: string) {
       <div class="progress">{{ index + 1 }} / {{ queue.length }}</div>
 
       <div class="card" :class="{ revealed }" @click="revealed = !revealed">
-        <button class="say" title="Pronounce" :disabled="speaking" @click.stop="speak(current.target)">
+        <button
+          v-if="showTarget || revealed"
+          class="say"
+          title="Pronounce"
+          :disabled="speaking"
+          @click.stop="speak(current.target)"
+        >
           <span v-if="speaking" class="spinner" />
           <span v-else>🔊</span>
         </button>
-        <div class="front">{{ current.target }}</div>
+        <div class="front" :class="{ english: !showTarget }">{{ frontText }}</div>
         <div v-if="revealed" class="answer">
-          <div class="en">{{ current.english }}</div>
+          <div class="en" :class="{ target: !showTarget }">{{ backText }}</div>
           <div class="meta">
             <span v-if="current.topic" class="tag">{{ current.topic }}</span>
             <span v-if="current.partOfSpeech" class="tag pos">{{ current.partOfSpeech }}</span>
@@ -496,6 +543,14 @@ async function speak(text: string) {
   font-weight: 700;
   color: var(--accent-2);
   text-align: center;
+}
+/* The target language stays green wherever it sits; English is plain text. */
+.front.english {
+  color: var(--text);
+}
+.en.target {
+  color: var(--accent-2);
+  font-weight: 700;
 }
 .answer {
   display: flex;

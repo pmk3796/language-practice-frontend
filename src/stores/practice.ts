@@ -23,6 +23,8 @@ type SpeechSpeed = 'slow' | 'normal'
 type Status = 'idle' | 'processing' | 'error'
 export type ThemeChoice = 'light' | 'dark' | 'auto'
 export type PaletteId = 'calm' | 'confident'
+/** Which side of a flashcard you're shown first during review. */
+export type ReviewDirection = 'target' | 'english' | 'mixed'
 
 /** Colour schemes; each one has its own light and dark variant. */
 export const PALETTES: { id: PaletteId; name: string; blurb: string; swatch: string[] }[] = [
@@ -62,6 +64,7 @@ interface Persisted {
   palette: PaletteId
   // CEFR level per language — you're rarely the same level in two languages.
   levels: Record<string, string>
+  reviewDirection: ReviewDirection
   activeSessionId: string | null
   sessions: Session[]
   // Flashcards are your vocabulary, kept per language and shared across sessions.
@@ -97,6 +100,8 @@ function load(): Persisted {
         theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'auto',
         palette: p.palette === 'confident' ? 'confident' : 'calm',
         levels: p.levels || {},
+        reviewDirection:
+          p.reviewDirection === 'english' || p.reviewDirection === 'mixed' ? p.reviewDirection : 'target',
         activeSessionId: p.activeSessionId ?? null,
         sessions: Array.isArray(p.sessions) ? p.sessions : [],
         flashcards: p.flashcards || {},
@@ -113,6 +118,7 @@ function load(): Persisted {
     theme: 'auto',
     palette: 'calm',
     levels: {},
+    reviewDirection: 'target',
     activeSessionId: null,
     sessions: [],
     flashcards: migrateFlashcardsFromV1(),
@@ -216,6 +222,10 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // Flashcard review: which language deck we're reviewing (null = not reviewing)
   const reviewLanguage = ref<string | null>(null)
+  const reviewDirection = ref<ReviewDirection>(persisted.reviewDirection)
+  function setReviewDirection(d: ReviewDirection) {
+    reviewDirection.value = d
+  }
   const tagging = ref(false)
 
   // --- Computed views -------------------------------------------------------
@@ -307,7 +317,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ----------------------------------------------------------
   watch(
-    [homeLanguage, draftLanguage, draftProfile, speed, theme, palette, levelByLang, activeSessionId, sessions, flashcardsByLang],
+    [homeLanguage, draftLanguage, draftProfile, speed, theme, palette, levelByLang, reviewDirection, activeSessionId, sessions, flashcardsByLang],
     () => {
       // Strip volatile fields (blob URLs, pending flags) that don't survive reload.
       const cleanSessions = sessions.map((s) => ({
@@ -324,6 +334,7 @@ export const usePracticeStore = defineStore('practice', () => {
           theme: theme.value,
           palette: palette.value,
           levels: levelByLang,
+          reviewDirection: reviewDirection.value,
           activeSessionId: activeSessionId.value,
           sessions: cleanSessions,
           flashcards: flashcardsByLang,
@@ -673,6 +684,8 @@ export const usePracticeStore = defineStore('practice', () => {
     activeProfile,
     // flashcards / review
     reviewLanguage,
+    reviewDirection,
+    setReviewDirection,
     reviewDeck,
     tagging,
     languagesWithDecks,
