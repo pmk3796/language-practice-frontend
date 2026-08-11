@@ -39,10 +39,48 @@ function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-// Strip leading/trailing punctuation and symbols (any language), keeping the
-// core word — so "lima," -> "lima", "¿cómo" -> "cómo", but "l'acqua" is intact.
+/** Are all brackets in this string properly opened and closed? */
+function bracketsBalanced(s: string): boolean {
+  const closerFor: Record<string, string> = { '(': ')', '[': ']', '{': '}' }
+  const closers = new Set(Object.values(closerFor))
+  const stack: string[] = []
+  for (const ch of s) {
+    if (closerFor[ch]) stack.push(closerFor[ch])
+    else if (closers.has(ch) && stack.pop() !== ch) return false
+  }
+  return stack.length === 0
+}
+
+const EDGE_PUNCT = /[\p{P}\p{S}\s]/u
+
+/**
+ * Strip leading/trailing punctuation, keeping the core word — so "lima," ->
+ * "lima" and "¿cómo" -> "cómo", while "l'acqua" stays intact.
+ *
+ * Stripping stops at a character whose removal would unbalance a bracket pair,
+ * so a gloss like "you (formal)" keeps its closing parenthesis.
+ */
 function cleanWord(s: string): string {
-  return s.replace(/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/gu, '')
+  let out = s.trim()
+  while (out.length && EDGE_PUNCT.test(out[0]!) && bracketsBalanced(out.slice(1))) {
+    out = out.slice(1)
+  }
+  while (out.length && EDGE_PUNCT.test(out[out.length - 1]!) && bracketsBalanced(out.slice(0, -1))) {
+    out = out.slice(0, -1)
+  }
+  return out
+}
+
+/** Repair a string an earlier version of cleanWord truncated, e.g. "you (formal". */
+function repairBrackets(s: string): string {
+  const closerFor: Record<string, string> = { '(': ')', '[': ']', '{': '}' }
+  const closers = new Set(Object.values(closerFor))
+  const stack: string[] = []
+  for (const ch of s) {
+    if (closerFor[ch]) stack.push(closerFor[ch])
+    else if (closers.has(ch)) stack.pop()
+  }
+  return s + stack.reverse().join('')
 }
 
 // Case-insensitive, punctuation-insensitive key used to match/dedupe words.
@@ -206,8 +244,8 @@ export const usePracticeStore = defineStore('practice', () => {
   for (const code of Object.keys(flashcardsByLang)) {
     const seen = new Set<string>()
     flashcardsByLang[code] = flashcardsByLang[code].filter((c) => {
-      c.target = cleanWord(c.target)
-      c.english = cleanWord(c.english)
+      c.target = cleanWord(repairBrackets(c.target))
+      c.english = cleanWord(repairBrackets(c.english))
       const key = c.target.toLowerCase()
       if (!c.target || seen.has(key)) return false
       seen.add(key)
