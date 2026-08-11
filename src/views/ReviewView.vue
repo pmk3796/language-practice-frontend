@@ -92,6 +92,16 @@ function start() {
 }
 
 // --- Managing the deck ------------------------------------------------------
+/**
+ * Leitner levels, named rather than shown as a bare fraction — "2/5" doesn't
+ * tell you what it counts. "Got it" moves a card up one; "Missed" sends it back
+ * to New.
+ */
+const MASTERY = ['New', 'Learning', 'Familiar', 'Strong', 'Mastered']
+const masteryLabel = (box: number) => MASTERY[Math.min(Math.max(box, 1), 5) - 1]
+const masteryTitle = (box: number) =>
+  `${masteryLabel(box)} — level ${box} of 5. Getting it right moves a card up; missing it sends it back to New.`
+
 const newTarget = ref('')
 const newEnglish = ref('')
 const addNotice = ref('')
@@ -366,6 +376,7 @@ async function speak(text: string) {
 
         <div class="manage-head">
           <span class="flabel">{{ store.reviewDeck.length }} cards</span>
+          <span class="legend">New → Learning → Familiar → Strong → Mastered</span>
           <input v-if="store.reviewDeck.length" v-model="search" class="search" placeholder="Filter…" />
         </div>
 
@@ -382,7 +393,13 @@ async function speak(text: string) {
             </div>
             <div class="card-meta">
               <span v-if="card.topic" class="tag">{{ card.topic }}</span>
-              <span class="tag box" :title="`Mastery level ${card.box} of 5`">{{ card.box }}/5</span>
+              <span
+                class="tag box"
+                :class="{ low: (card.box ?? 1) <= 2, top: (card.box ?? 1) >= 5 }"
+                :title="masteryTitle(card.box ?? 1)"
+              >
+                {{ masteryLabel(card.box ?? 1) }}
+              </span>
             </div>
             <button class="remove" title="Remove card" @click="removeCard(card.id)">✕</button>
           </li>
@@ -708,7 +725,8 @@ async function speak(text: string) {
   padding-top: 0;
 }
 .search {
-  width: 180px;
+  width: 150px;
+  flex-shrink: 0;
 }
 .cards {
   list-style: none;
@@ -754,6 +772,20 @@ async function speak(text: string) {
 .tag.box {
   background: var(--tint);
   color: var(--muted);
+}
+.tag.box.low {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.tag.box.top {
+  background: var(--success-soft);
+  color: var(--accent-2);
+}
+.legend {
+  flex: 1;
+  text-align: right;
+  color: var(--muted);
+  font-size: 11.5px;
 }
 .remove {
   flex-shrink: 0;
