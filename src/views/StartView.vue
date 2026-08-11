@@ -486,7 +486,7 @@ ul {
 }
 .tag.active {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--on-accent-soft);
 }
 .del {
   background: transparent;

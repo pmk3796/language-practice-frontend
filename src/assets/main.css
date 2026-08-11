@@ -14,9 +14,13 @@
 
 /* ---------------------------------------------------------------- derived */
 :root {
-  /* Button gradients: a touch lighter at the top, darker at the bottom. */
-  --accent-grad-a: color-mix(in srgb, var(--accent) 86%, white);
-  --accent-grad-b: color-mix(in srgb, var(--accent) 86%, black);
+  /*
+   * Button gradients shade downwards from the accent. The top stop is the accent
+   * exactly, never lighter: lightening it dropped white labels below AA on the
+   * very palettes whose flat accent passed.
+   */
+  --accent-grad-a: var(--accent);
+  --accent-grad-b: color-mix(in srgb, var(--accent) 90%, black);
   --accent-glow: color-mix(in srgb, var(--accent) 34%, transparent);
   --focus-ring: color-mix(in srgb, var(--accent) 30%, transparent);
   --on-accent: #ffffff;
@@ -29,6 +33,9 @@
 
   /* Soft status washes, always a tint of their own colour. */
   --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  /* Reading on --accent-soft: the wash shifts the ground towards the accent, so
+     the label has to travel away from it to keep contrast. */
+  --on-accent-soft: color-mix(in oklab, var(--accent) 58%, var(--text));
   --success-soft: color-mix(in srgb, var(--accent-2) 16%, transparent);
   --danger-soft: color-mix(in srgb, var(--danger) 15%, transparent);
   --warn-soft: color-mix(in srgb, var(--warn) 15%, transparent);
@@ -115,23 +122,6 @@
   --warn: #8a6100;
   --on-sent-underline: #7be8b4;
 }
-/*
- * A bright accent on a dark ground is what makes this feel current, but white
- * on it measures 1.9:1 — so in dark mode the label goes dark instead. Same for
- * the white ＋ chip, whose glyph is the accent and would all but vanish.
- *
- * These must stay attribute-scoped: at bare :root they would outrank the
- * shared block and leak into Calm and Confident, which are built on white.
- */
-:root[data-palette='focused'] {
-  --on-accent: #06231a;
-  --chip-fg: #0a5540;
-}
-:root[data-palette='focused'][data-theme='light'] {
-  --on-accent: #ffffff;
-  --chip-fg: #ffffff;
-}
-
 /* ------------------------------------------------------- palette: “Calm”  */
 /* Cool teal brand, warm off-white ground, forest green reserved for success. */
 :root[data-palette='calm'] {
@@ -203,11 +193,36 @@
   --text: #171b2c;
   --muted: #5b657f;
   --accent: #4a5fd0;
-  --accent-2: #12946a;
+  --accent-2: #0d7351;
   --sent: #4b45c9;
   --danger: #d32f3f;
-  --warn: #9a6b00;
+  --warn: #8a6100;
   --on-sent-underline: #5fe8b4;
+}
+
+/*
+ * A saturated accent on a dark ground cannot carry a white label — measured
+ * between 1.9:1 and 3.1:1 across the three palettes — so in dark mode the label
+ * goes dark instead. That is also what makes a bright accent look current
+ * rather than washed out.
+ *
+ * The white ＋ chip has the mirror problem: its glyph is the accent, which has
+ * to be deepened to sit on white.
+ *
+ * Both are scoped to a palette *and* a mode: at bare :root they would outrank
+ * the shared block and leak across palettes.
+ */
+:root[data-palette='focused'][data-theme='dark'] {
+  --on-accent: #06231a;
+  --chip-fg: #0a5540;
+}
+:root[data-palette='calm'][data-theme='dark'] {
+  --on-accent: #021512;
+  --chip-fg: #175b51;
+}
+:root[data-palette='confident'][data-theme='dark'] {
+  --on-accent: #0b1030;
+  --chip-fg: #3b4d8c;
 }
 
 /**
