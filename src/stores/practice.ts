@@ -303,9 +303,17 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
-  // Languages that actually have saved cards (for the home flashcards list).
+  /**
+   * Decks shown on the home page: any language with cards, plus any language
+   * you've practised — otherwise a language with an empty deck is unreachable
+   * and you could never add a first card to it by hand.
+   */
   const languagesWithDecks = computed(() =>
-    languages.value.filter((l) => (flashcardsByLang[l.code]?.length ?? 0) > 0),
+    languages.value.filter(
+      (l) =>
+        (flashcardsByLang[l.code]?.length ?? 0) > 0 ||
+        sessions.some((sess) => sess.language === l.code),
+    ),
   )
 
   // Info objects (named activeLanguage/activeProfile so existing panels keep working)
@@ -599,6 +607,35 @@ export const usePracticeStore = defineStore('practice', () => {
     return !!findFlashcard(target)
   }
 
+  /**
+   * Deck editing, always against an explicit language. The helpers below this
+   * act on whichever language the current session/lobby is using, which is not
+   * necessarily the deck open in review.
+   */
+  function addCardTo(lang: string, target: string, english: string): 'added' | 'duplicate' | 'empty' {
+    const t = cleanWord(repairBrackets(target))
+    const e = cleanWord(repairBrackets(english))
+    if (!t || !e) return 'empty'
+    const deck = ensureDeck(lang)
+    if (deck.some((c) => wordKey(c.target) === wordKey(t))) return 'duplicate'
+    deck.push({ id: uid(), target: t, english: e, box: 1, createdAt: Date.now() })
+    return 'added'
+  }
+
+  /** Returns the removed card and where it was, so it can be put back. */
+  function removeCardFrom(lang: string, id: string): { card: Flashcard; index: number } | null {
+    const deck = ensureDeck(lang)
+    const index = deck.findIndex((c) => c.id === id)
+    if (index < 0) return null
+    const [card] = deck.splice(index, 1)
+    return { card: card!, index }
+  }
+
+  function restoreCardTo(lang: string, card: Flashcard, index: number) {
+    const deck = ensureDeck(lang)
+    deck.splice(Math.min(index, deck.length), 0, card)
+  }
+
   function addFlashcard(target: string, english: string) {
     const t = cleanWord(target)
     const e = cleanWord(english)
@@ -760,6 +797,9 @@ export const usePracticeStore = defineStore('practice', () => {
     clearConversation,
     submitRecording,
     isFlashcardSaved,
+    addCardTo,
+    removeCardFrom,
+    restoreCardTo,
     addFlashcard,
     toggleFlashcard,
     removeFlashcard,

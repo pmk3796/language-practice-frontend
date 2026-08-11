@@ -56,7 +56,7 @@ function clearFilters() {
 }
 
 // --- Run state -------------------------------------------------------------
-type Phase = 'setup' | 'running' | 'done'
+type Phase = 'setup' | 'running' | 'done' | 'manage'
 const phase = ref<Phase>('setup')
 const queue = ref<Flashcard[]>([])
 // Which side each queued card leads with. Fixed when the run starts so a card
@@ -91,10 +91,63 @@ function start() {
   phase.value = 'running'
 }
 
+// --- Managing the deck ------------------------------------------------------
+const newTarget = ref('')
+const newEnglish = ref('')
+const addNotice = ref('')
+const search = ref('')
+/** Last removal, kept so it can be undone rather than confirmed up front. */
+const lastRemoved = ref<{ card: Flashcard; index: number } | null>(null)
+
+const managed = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const cards = [...store.reviewDeck].sort((a, b) => b.createdAt - a.createdAt)
+  if (!q) return cards
+  return cards.filter(
+    (c) => c.target.toLowerCase().includes(q) || c.english.toLowerCase().includes(q),
+  )
+})
+
+function addCard() {
+  const lang = store.reviewLanguage
+  if (!lang) return
+  const result = store.addCardTo(lang, newTarget.value, newEnglish.value)
+  if (result === 'empty') {
+    addNotice.value = 'Both the word and its meaning are needed.'
+    return
+  }
+  if (result === 'duplicate') {
+    addNotice.value = `“${newTarget.value.trim()}” is already in this deck.`
+    return
+  }
+  addNotice.value = ''
+  newTarget.value = ''
+  newEnglish.value = ''
+  targetInput.value?.focus()
+}
+
+const targetInput = ref<HTMLInputElement | null>(null)
+
+function removeCard(id: string) {
+  const lang = store.reviewLanguage
+  if (!lang) return
+  lastRemoved.value = store.removeCardFrom(lang, id)
+}
+
+function undoRemove() {
+  const lang = store.reviewLanguage
+  if (!lang || !lastRemoved.value) return
+  store.restoreCardTo(lang, lastRemoved.value.card, lastRemoved.value.index)
+  lastRemoved.value = null
+}
+
 /** Up one level: run → options, options → out of the deck. */
 function goBack() {
   if (phase.value === 'setup') store.exitReview()
-  else phase.value = 'setup'
+  else {
+    lastRemoved.value = null
+    phase.value = 'setup'
+  }
 }
 
 function grade(known: boolean) {
@@ -280,12 +333,64 @@ async function speak(text: string) {
         </p>
 
         <div class="setup-footer">
+          <button class="manage-link" @click="phase = 'manage'">Manage cards</button>
           <span class="match">
             Reviewing <strong>{{ filtered.length }}</strong> of {{ store.reviewDeck.length }}
           </span>
           <button class="start" :disabled="!filtered.length" @click="start">
             Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANAGE: browse, add and remove cards -->
+    <section v-else-if="phase === 'manage'" class="setup">
+      <div class="setup-card">
+        <div class="field">
+          <span class="flabel">Add a card</span>
+          <div class="add-row">
+            <input
+              ref="targetInput"
+              v-model="newTarget"
+              :placeholder="langInfo?.name || 'Word'"
+              @keydown.enter="addCard"
+            />
+            <input v-model="newEnglish" placeholder="English meaning" @keydown.enter="addCard" />
+            <button class="add-btn" @click="addCard">Add</button>
+          </div>
+        </div>
+        <p v-if="addNotice" class="hint notice">{{ addNotice }}</p>
+
+        <div class="divider" />
+
+        <div class="manage-head">
+          <span class="flabel">{{ store.reviewDeck.length }} cards</span>
+          <input v-if="store.reviewDeck.length" v-model="search" class="search" placeholder="Filter…" />
+        </div>
+
+        <p v-if="!store.reviewDeck.length" class="hint">
+          This deck is empty. Add a card above, or save words while you're having a conversation.
+        </p>
+        <p v-else-if="!managed.length" class="hint">Nothing matches “{{ search }}”.</p>
+
+        <ul v-else class="cards">
+          <li v-for="card in managed" :key="card.id">
+            <div class="card-text">
+              <span class="card-target">{{ card.target }}</span>
+              <span class="card-en">{{ card.english }}</span>
+            </div>
+            <div class="card-meta">
+              <span v-if="card.topic" class="tag">{{ card.topic }}</span>
+              <span class="tag box" :title="`Mastery level ${card.box} of 5`">{{ card.box }}/5</span>
+            </div>
+            <button class="remove" title="Remove card" @click="removeCard(card.id)">✕</button>
+          </li>
+        </ul>
+
+        <div v-if="lastRemoved" class="undo-bar">
+          <span>Removed “{{ lastRemoved.card.target }}”</span>
+          <button @click="undoRemove">Undo</button>
         </div>
       </div>
     </section>
@@ -538,6 +643,152 @@ async function speak(text: string) {
   color: var(--muted);
   font-size: 13px;
   margin: 0;
+}
+
+.manage-link {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+.manage-link:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* --- manage screen --- */
+.add-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+.add-row input,
+.search {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 14px;
+  outline: none;
+  min-width: 0;
+}
+.add-row input {
+  flex: 1;
+}
+.add-row input:focus,
+.search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.add-btn {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hint.notice {
+  color: var(--warn);
+}
+.manage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.manage-head .flabel {
+  width: auto;
+  padding-top: 0;
+}
+.search {
+  width: 180px;
+}
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+.cards li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+.card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.card-target {
+  color: var(--accent-2);
+  font-weight: 700;
+  font-size: 15px;
+}
+.card-en {
+  color: var(--muted);
+  font-size: 13px;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.tag.box {
+  background: var(--tint);
+  color: var(--muted);
+}
+.remove {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 7px;
+}
+.remove:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.undo-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  font-size: 13px;
+}
+.undo-bar button {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+.undo-bar button:hover {
+  text-decoration: underline;
 }
 
 .setup-footer {
