@@ -91,6 +91,12 @@ function start() {
   phase.value = 'running'
 }
 
+/** Up one level: run → options, options → out of the deck. */
+function goBack() {
+  if (phase.value === 'setup') store.exitReview()
+  else phase.value = 'setup'
+}
+
 function grade(known: boolean) {
   const card = current.value
   const code = store.reviewLanguage
@@ -169,8 +175,10 @@ async function speak(text: string) {
 <template>
   <div class="review">
     <header class="topbar">
-      <button class="back" @click="store.exitReview()">← Home</button>
-      <button v-if="phase !== 'setup'" class="back" @click="phase = 'setup'">← Options</button>
+      <!-- One back button that steps up a single level: a run returns to the
+           options screen, and the options screen leaves the deck. Two identical
+           arrows side by side read as two competing "backs". -->
+      <button class="back" @click="goBack">← {{ phase === 'setup' ? 'Home' : 'Options' }}</button>
       <div class="title">
         <span class="flag">{{ langInfo?.flag }}</span>
         {{ langInfo?.name }} flashcards
