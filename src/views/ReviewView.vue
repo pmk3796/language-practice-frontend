@@ -170,6 +170,7 @@ async function speak(text: string) {
   <div class="review">
     <header class="topbar">
       <button class="back" @click="store.exitReview()">← Home</button>
+      <button v-if="phase !== 'setup'" class="back" @click="phase = 'setup'">← Options</button>
       <div class="title">
         <span class="flag">{{ langInfo?.flag }}</span>
         {{ langInfo?.name }} flashcards
@@ -345,7 +346,7 @@ async function speak(text: string) {
       <h2>Nice work!</h2>
       <p>You reviewed {{ queue.length }} card{{ queue.length === 1 ? '' : 's' }} — {{ gotIt }} got it, {{ missed }} to practise again.</p>
       <div class="done-actions">
-        <button class="secondary" @click="phase = 'setup'">Change filters</button>
+        <button class="secondary" @click="phase = 'setup'">Change options</button>
         <button class="start" @click="store.exitReview()">Done</button>
       </div>
     </section>
