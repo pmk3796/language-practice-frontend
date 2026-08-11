@@ -190,8 +190,9 @@ const label = computed(() => {
 .spinner {
   width: 34px;
   height: 34px;
-  border: 4px solid rgba(255, 255, 255, 0.35);
-  border-top-color: white;
+  /* Sits on the accent fill, so it must follow the same label colour. */
+  border: 4px solid color-mix(in srgb, var(--on-accent) 35%, transparent);
+  border-top-color: var(--on-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

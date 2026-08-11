@@ -22,12 +22,18 @@ import { base64ToBlobUrl, playAudio } from '@/lib/audio'
 type SpeechSpeed = 'slow' | 'normal'
 type Status = 'idle' | 'processing' | 'error'
 export type ThemeChoice = 'light' | 'dark' | 'auto'
-export type PaletteId = 'calm' | 'confident'
+export type PaletteId = 'focused' | 'calm' | 'confident'
 /** Which side of a flashcard you're shown first during review. */
 export type ReviewDirection = 'target' | 'english' | 'mixed'
 
 /** Colour schemes; each one has its own light and dark variant. */
 export const PALETTES: { id: PaletteId; name: string; blurb: string; swatch: string[] }[] = [
+  {
+    id: 'focused',
+    name: 'Focused',
+    blurb: 'Deep emerald on clean neutrals',
+    swatch: ['#0a6e4e', '#15803d', '#f6f8f7'],
+  },
   { id: 'calm', name: 'Calm', blurb: 'Teal and forest green', swatch: ['#0f7a6e', '#2e6f40', '#f6f5f1'] },
   { id: 'confident', name: 'Confident', blurb: 'Indigo and mint', swatch: ['#6c8cff', '#4ad6a0', '#1a1e30'] },
 ]
@@ -107,6 +113,8 @@ interface Persisted {
   sessions: Session[]
   // Flashcards are your vocabulary, kept per language and shared across sessions.
   flashcards: Record<string, Flashcard[]>
+  // Absent on blobs written before Focused became the default palette.
+  settingsVersion?: number
 }
 
 /** Rescue flashcards from the old (v1) single-conversation format, if present. */
@@ -125,6 +133,16 @@ function migrateFlashcardsFromV1(): Record<string, Flashcard[]> {
   }
 }
 
+const PALETTE_IDS: PaletteId[] = ['focused', 'calm', 'confident']
+/** Bumped when a stored settings value needs reinterpreting rather than defaulting. */
+const SETTINGS_VERSION = 2
+
+function migratePalette(p: Partial<Persisted>): PaletteId {
+  const stored = PALETTE_IDS.includes(p.palette as PaletteId) ? (p.palette as PaletteId) : 'focused'
+  if ((p.settingsVersion ?? 1) < SETTINGS_VERSION && stored === 'calm') return 'focused'
+  return stored
+}
+
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -136,13 +154,19 @@ function load(): Persisted {
         draftProfile: p.draftProfile || 'free',
         speed: p.speed === 'slow' ? 'slow' : 'normal',
         theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'auto',
-        palette: p.palette === 'confident' ? 'confident' : 'calm',
+        /*
+         * Focused replaced Calm as the default. Anyone still on Calm was almost
+         * certainly never asked, so move them across once; an explicit pick of
+         * Confident is left alone, and either is one click away in Settings.
+         */
+        palette: migratePalette(p),
         levels: p.levels || {},
         reviewDirection:
           p.reviewDirection === 'english' || p.reviewDirection === 'mixed' ? p.reviewDirection : 'target',
         activeSessionId: p.activeSessionId ?? null,
         sessions: Array.isArray(p.sessions) ? p.sessions : [],
         flashcards: p.flashcards || {},
+        settingsVersion: SETTINGS_VERSION,
       }
     }
   } catch {
@@ -154,12 +178,13 @@ function load(): Persisted {
     draftProfile: 'free',
     speed: 'normal',
     theme: 'auto',
-    palette: 'calm',
+    palette: 'focused',
     levels: {},
     reviewDirection: 'target',
     activeSessionId: null,
     sessions: [],
     flashcards: migrateFlashcardsFromV1(),
+    settingsVersion: SETTINGS_VERSION,
   }
 }
 
@@ -381,6 +406,7 @@ export const usePracticeStore = defineStore('practice', () => {
           speed: speed.value,
           theme: theme.value,
           palette: palette.value,
+          settingsVersion: SETTINGS_VERSION,
           levels: levelByLang,
           reviewDirection: reviewDirection.value,
           activeSessionId: activeSessionId.value,

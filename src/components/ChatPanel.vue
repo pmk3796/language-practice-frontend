@@ -425,7 +425,7 @@ watch(
 
 .row.user .bubble {
   background: var(--sent);
-  color: var(--on-accent);
+  color: var(--on-sent);
   border-bottom-right-radius: 4px;
 }
 

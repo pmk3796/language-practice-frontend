@@ -20,6 +20,12 @@
   --accent-glow: color-mix(in srgb, var(--accent) 34%, transparent);
   --focus-ring: color-mix(in srgb, var(--accent) 30%, transparent);
   --on-accent: #ffffff;
+  /*
+   * Separate from --on-accent, which it duplicated in every palette until one
+   * of them made the accent bright enough to need a dark label. The user bubble
+   * is --sent, which stays deep in every palette, so its text stays white.
+   */
+  --on-sent: #ffffff;
 
   /* Soft status washes, always a tint of their own colour. */
   --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
@@ -58,9 +64,76 @@
   --chip-fg: #ffffff;
 }
 
+/* ------------------------------------------------------- palette: “Focused” */
+/*
+ * The default. A deep emerald brand on near-neutral grounds — the greens carry
+ * the character, the surfaces stay out of the way. Deliberately deeper and less
+ * yellow than the bright greens language apps tend to use: this is a study tool,
+ * so it should read considered rather than playful.
+ *
+ * Two greens, split by hue so they never read as a mistake: --accent is the
+ * blue-leaning emerald used for anything actionable, --accent-2 the leaf green
+ * reserved for "you know this" — saved vocabulary, correct answers, mastery.
+ */
+:root,
+:root[data-palette='focused'] {
+  --bg: #0c1310;
+  --bg-glow: #12291f;
+  --panel: #121a17;
+  --panel-2: #1a231f;
+  --menu-bg: #151e1a;
+  --border: #27332d;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.34);
+  --overlay: rgba(4, 10, 8, 0.72);
+  --text: #e6ede9;
+  --muted: #93a29b;
+  /* Deeper and less saturated than a dark ground would allow, on purpose: a
+     brighter mint reads as neon, which is the opposite of the intent here. */
+  --accent: #35c48d;
+  --accent-2: #63cf85;
+  --sent: #12735a;
+  --danger: #ff6b6b;
+  --warn: #ffc663;
+  --on-sent-underline: #7be8b4;
+}
+:root[data-theme='light'],
+:root[data-palette='focused'][data-theme='light'] {
+  --bg: #f6f8f7;
+  --bg-glow: #e3f0e9;
+  --panel: #ffffff;
+  --panel-2: #f1f5f3;
+  --menu-bg: #ffffff;
+  --border: #e1e8e4;
+  --shadow: 0 8px 24px rgba(12, 32, 24, 0.1);
+  --overlay: rgba(10, 24, 19, 0.4);
+  --text: #0f1a16;
+  --muted: #5c6b65;
+  --accent: #0a6e4e;
+  --accent-2: #15803d;
+  --sent: #0b5741;
+  --danger: #c53030;
+  --warn: #8a6100;
+  --on-sent-underline: #7be8b4;
+}
+/*
+ * A bright accent on a dark ground is what makes this feel current, but white
+ * on it measures 1.9:1 — so in dark mode the label goes dark instead. Same for
+ * the white ＋ chip, whose glyph is the accent and would all but vanish.
+ *
+ * These must stay attribute-scoped: at bare :root they would outrank the
+ * shared block and leak into Calm and Confident, which are built on white.
+ */
+:root[data-palette='focused'] {
+  --on-accent: #06231a;
+  --chip-fg: #0a5540;
+}
+:root[data-palette='focused'][data-theme='light'] {
+  --on-accent: #ffffff;
+  --chip-fg: #ffffff;
+}
+
 /* ------------------------------------------------------- palette: “Calm”  */
 /* Cool teal brand, warm off-white ground, forest green reserved for success. */
-:root,
 :root[data-palette='calm'] {
   --bg: #101513;
   --bg-glow: #18241f;
@@ -79,7 +152,6 @@
   --warn: #f0c05a;
   --on-sent-underline: #8fe3ae;
 }
-:root[data-theme='light'],
 :root[data-palette='calm'][data-theme='light'] {
   --bg: #f6f5f1;
   --bg-glow: #e7efea;

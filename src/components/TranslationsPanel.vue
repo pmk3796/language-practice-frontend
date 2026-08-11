@@ -107,7 +107,9 @@ li {
   color: var(--muted);
 }
 .arrow {
-  color: var(--border);
+  /* Was --border, i.e. the token chosen to be almost invisible — but this glyph
+     is what says which way round the pair reads. */
+  color: var(--muted);
 }
 .target {
   color: var(--accent-2);
