@@ -4,6 +4,7 @@ import { usePracticeStore } from '@/stores/practice'
 import { fetchSpeech, transcribeAudio } from '@/api/client'
 import { useRecorder } from '@/composables/useRecorder'
 import { checkSpoken } from '@/lib/spoken'
+import { isSilent } from '@/lib/silence'
 import { playAudio } from '@/lib/audio'
 import type { Flashcard } from '@/types'
 
@@ -128,6 +129,13 @@ async function toggleSpeak() {
   const { blob, filename } = await stopRec()
   checking.value = true
   try {
+    // Never hand silence to the transcriber — it invents a sentence rather than
+    // returning nothing, which reads as a bizarre wrong answer.
+    if (await isSilent(blob)) {
+      spoken.value = { heard: '', correct: false }
+      revealed.value = true
+      return
+    }
     const heard = await transcribeAudio(blob, filename, code)
     const result = checkSpoken(heard, current.value?.target ?? '')
     spoken.value = result
