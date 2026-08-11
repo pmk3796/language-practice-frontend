@@ -114,6 +114,16 @@ function masteryLabel(card: Flashcard): string {
   return MASTERY[box - 1]!
 }
 
+/**
+ * Levels are ordered, not unrelated categories, so they share one hue and vary
+ * in strength — six different colours would imply six different kinds of thing.
+ * Tricky sits off the ramp in amber because it is a flag, not a rung.
+ */
+function masteryClass(card: Flashcard): string {
+  if (masteryLabel(card) === 'Tricky') return 'tricky'
+  return `l${Math.min(Math.max(card.box ?? 1, 1), 5)}`
+}
+
 function masteryTitle(card: Flashcard): string {
   const box = Math.min(Math.max(card.box ?? 1, 1), 5)
   const misses = card.wrongCount ?? 0
@@ -417,7 +427,7 @@ async function speak(text: string) {
               <span v-if="card.topic" class="tag">{{ card.topic }}</span>
               <span
                 class="tag box"
-                :class="{ low: masteryLabel(card) === 'Tricky', top: (card.box ?? 1) >= 5 }"
+                :class="masteryClass(card)"
                 :title="masteryTitle(card)"
               >
                 {{ masteryLabel(card) }}
@@ -791,17 +801,49 @@ async function speak(text: string) {
   gap: 6px;
   flex-shrink: 0;
 }
-.tag.box {
-  background: var(--tint);
+/*
+ * The topic never changes, so it does not earn colour. Outlining it frees the
+ * whole row's colour budget for the one tag that carries a changing value.
+ */
+.cards .tag:not(.box) {
+  background: transparent;
+  border: 1px solid var(--border);
   color: var(--muted);
+  font-weight: 500;
 }
-.tag.box.low {
+/*
+ * As the fill strengthens it moves *towards* the accent, which in a light theme
+ * means the chip gets darker while dark text sits on it — measured at 2.1:1 for
+ * the top step before this. So the label travels with the fill, blending towards
+ * --text (near-black in light themes, near-white in dark ones) as the background
+ * gains strength. The hue still reads as one ramp; only the contrast is held.
+ */
+.tag.box.l1 {
+  background: var(--tint);
+  color: color-mix(in oklab, var(--muted) 55%, var(--text));
+}
+.tag.box.tricky {
   background: var(--warn-soft);
-  color: var(--warn);
+  color: color-mix(in oklab, var(--warn) 50%, var(--text));
 }
-.tag.box.top {
-  background: var(--success-soft);
-  color: var(--accent-2);
+.tag.box.l2 {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: color-mix(in oklab, var(--accent) 75%, var(--text));
+}
+.tag.box.l3 {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  color: color-mix(in oklab, var(--accent) 55%, var(--text));
+}
+.tag.box.l4 {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  color: color-mix(in oklab, var(--accent) 38%, var(--text));
+}
+/* Ringed rather than filled solid — an inverted chip would drop text contrast at
+   exactly the step that should feel best. */
+.tag.box.l5 {
+  background: color-mix(in oklab, var(--accent) 38%, transparent);
+  color: color-mix(in oklab, var(--accent) 26%, var(--text));
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 .legend {
   flex: 1;
