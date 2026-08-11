@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
-import { fetchSpeech } from '@/api/client'
+import { fetchSpeech, transcribeAudio } from '@/api/client'
+import { useRecorder } from '@/composables/useRecorder'
+import { checkSpoken } from '@/lib/spoken'
 import { playAudio } from '@/lib/audio'
 import type { Flashcard } from '@/types'
 
@@ -82,6 +84,7 @@ function start() {
   )
   index.value = 0
   revealed.value = false
+  spoken.value = null
   gotIt.value = 0
   missed.value = 0
   phase.value = 'running'
@@ -94,8 +97,49 @@ function grade(known: boolean) {
   store.gradeCard(code, card.id, known)
   known ? gotIt.value++ : missed.value++
   revealed.value = false
+  spoken.value = null
   if (index.value + 1 >= queue.value.length) phase.value = 'done'
   else index.value++
+}
+
+// --- Speaking the answer ---------------------------------------------------
+/**
+ * Only offered when the card is asking for the target language. Saying an
+ * English word you already know proves nothing, so there's no mic in that
+ * direction.
+ */
+const canSpeakAnswer = computed(() => !showTarget.value)
+const { isRecording, isSupported: micSupported, start: startRec, stop: stopRec } = useRecorder()
+const checking = ref(false)
+const spoken = ref<{ heard: string; correct: boolean } | null>(null)
+
+async function toggleSpeak() {
+  const code = store.reviewLanguage
+  if (!code || checking.value) return
+  if (!isRecording.value) {
+    spoken.value = null
+    try {
+      await startRec()
+    } catch {
+      /* mic denied — the reveal path still works */
+    }
+    return
+  }
+  const { blob, filename } = await stopRec()
+  checking.value = true
+  try {
+    const heard = await transcribeAudio(blob, filename, code)
+    const result = checkSpoken(heard, current.value?.target ?? '')
+    spoken.value = result
+    revealed.value = true
+    // Getting it right is the reward moment — bank it and move on.
+    if (result.correct) setTimeout(() => grade(true), 1100)
+  } catch {
+    spoken.value = { heard: '', correct: false }
+    revealed.value = true
+  } finally {
+    checking.value = false
+  }
 }
 
 // --- Audio -----------------------------------------------------------------
@@ -247,13 +291,32 @@ async function speak(text: string) {
         <div class="front" :class="{ english: !showTarget }">{{ frontText }}</div>
         <div v-if="revealed" class="answer">
           <div class="en" :class="{ target: !showTarget }">{{ backText }}</div>
+          <div v-if="spoken" class="spoken-result" :class="{ good: spoken.correct }">
+            <template v-if="spoken.correct">✓ You said “{{ spoken.heard }}”</template>
+            <template v-else-if="spoken.heard">You said “{{ spoken.heard }}”</template>
+            <template v-else>Didn't catch that</template>
+          </div>
           <div class="meta">
             <span v-if="current.topic" class="tag">{{ current.topic }}</span>
             <span v-if="current.partOfSpeech" class="tag pos">{{ current.partOfSpeech }}</span>
           </div>
         </div>
-        <div v-else class="flip-hint">tap to reveal</div>
+        <div v-else class="flip-hint">
+          tap to reveal<template v-if="canSpeakAnswer && micSupported"> · or say it below</template>
+        </div>
       </div>
+
+      <button
+        v-if="canSpeakAnswer && micSupported && !spoken"
+        class="say-answer"
+        :class="{ recording: isRecording }"
+        :disabled="checking"
+        @click="toggleSpeak"
+      >
+        <span v-if="checking" class="spinner" />
+        <template v-else-if="isRecording">■ Stop &amp; check</template>
+        <template v-else>🎤 Say it in {{ langInfo?.name || 'the language' }}</template>
+      </button>
 
       <div v-if="revealed" class="grade">
         <button class="missed" @click="grade(false)">Missed</button>
@@ -581,6 +644,37 @@ async function speak(text: string) {
   color: var(--muted);
   font-size: 13px;
 }
+.say-answer {
+  width: min(560px, 92vw);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.say-answer:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.say-answer.recording {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.say-answer:disabled {
+  cursor: default;
+}
+.spoken-result {
+  font-size: 14px;
+  color: var(--danger);
+}
+.spoken-result.good {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
 .grade {
   display: flex;
   gap: 12px;

@@ -37,6 +37,29 @@ export async function fetchLanguages(): Promise<{ default: string; languages: La
   return res.json()
 }
 
+/** Speech-to-text only — used to check a spoken flashcard answer. */
+export async function transcribeAudio(
+  audio: Blob,
+  filename: string,
+  language: string,
+): Promise<string> {
+  const form = new FormData()
+  form.append('audio', audio, filename)
+  form.append('language', language)
+  const res = await fetch(`${BASE}/api/transcribe`, { method: 'POST', body: form })
+  if (!res.ok) {
+    let message = 'Could not hear that — try again.'
+    try {
+      const body = await res.json()
+      if (body?.message || body?.error) message = body.message || body.error
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return (await res.json()).text ?? ''
+}
+
 export async function fetchLevels(): Promise<{ default: string; levels: LevelOption[] }> {
   const res = await fetch(`${BASE}/api/levels`)
   if (!res.ok) throw new Error('Could not load levels')
