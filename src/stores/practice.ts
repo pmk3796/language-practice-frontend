@@ -289,7 +289,9 @@ export const usePracticeStore = defineStore('practice', () => {
     reviewLanguage.value ? ensureDeck(reviewLanguage.value) : [],
   )
 
-  // A card "needs practice" if it's struggling (low Leitner box) or recently missed.
+  // A card "needs practice" if it's low in the Leitner boxes, or has ever been
+  // missed — a word you got wrong once is worth another look even if it has
+  // since climbed back up.
   function needsPractice(c: Flashcard): boolean {
     return (c.box ?? 1) <= 2 || (c.wrongCount ?? 0) > 0
   }

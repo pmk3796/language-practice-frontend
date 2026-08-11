@@ -98,9 +98,31 @@ function start() {
  * to New.
  */
 const MASTERY = ['New', 'Learning', 'Familiar', 'Strong', 'Mastered']
-const masteryLabel = (box: number) => MASTERY[Math.min(Math.max(box, 1), 5) - 1]
-const masteryTitle = (box: number) =>
-  `${masteryLabel(box)} — level ${box} of 5. Getting it right moves a card up; missing it sends it back to New.`
+
+/**
+ * Level 1 means two different things and only one of them is a problem: a card
+ * you have never been asked, and a card you just got wrong. `wrongCount` already
+ * separates them, so show that rather than calling both "New".
+ *
+ * "Tricky" rather than "struggling" — the point of the app is practising without
+ * feeling bad about it, and the word being hard is the more useful framing than
+ * the learner being bad at it.
+ */
+function masteryLabel(card: Flashcard): string {
+  const box = Math.min(Math.max(card.box ?? 1, 1), 5)
+  if (box === 1 && (card.wrongCount ?? 0) > 0) return 'Tricky'
+  return MASTERY[box - 1]!
+}
+
+function masteryTitle(card: Flashcard): string {
+  const box = Math.min(Math.max(card.box ?? 1, 1), 5)
+  const misses = card.wrongCount ?? 0
+  const history = misses ? ` Missed ${misses} time${misses === 1 ? '' : 's'} so far.` : ''
+  return (
+    `${masteryLabel(card)} — level ${box} of 5.` +
+    ` Getting it right moves a card up; missing it sends it back to the start.${history}`
+  )
+}
 
 const newTarget = ref('')
 const newEnglish = ref('')
@@ -284,7 +306,7 @@ async function speak(text: string) {
         <div class="field">
           <span class="flabel">Sort by</span>
           <div class="segmented">
-            <button :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Struggling first</button>
+            <button :class="{ on: sortBy === 'struggling' }" @click="sortBy = 'struggling'">Weakest first</button>
             <button :class="{ on: sortBy === 'recent' }" @click="sortBy = 'recent'">Recently added</button>
             <button :class="{ on: sortBy === 'stale' }" @click="sortBy = 'stale'">Not reviewed lately</button>
           </div>
@@ -376,7 +398,7 @@ async function speak(text: string) {
 
         <div class="manage-head">
           <span class="flabel">{{ store.reviewDeck.length }} cards</span>
-          <span class="legend">New → Learning → Familiar → Strong → Mastered</span>
+          <span class="legend">New / Tricky → Learning → Familiar → Strong → Mastered</span>
           <input v-if="store.reviewDeck.length" v-model="search" class="search" placeholder="Filter…" />
         </div>
 
@@ -395,10 +417,10 @@ async function speak(text: string) {
               <span v-if="card.topic" class="tag">{{ card.topic }}</span>
               <span
                 class="tag box"
-                :class="{ low: (card.box ?? 1) <= 2, top: (card.box ?? 1) >= 5 }"
-                :title="masteryTitle(card.box ?? 1)"
+                :class="{ low: masteryLabel(card) === 'Tricky', top: (card.box ?? 1) >= 5 }"
+                :title="masteryTitle(card)"
               >
-                {{ masteryLabel(card.box ?? 1) }}
+                {{ masteryLabel(card) }}
               </span>
             </div>
             <button class="remove" title="Remove card" @click="removeCard(card.id)">✕</button>
