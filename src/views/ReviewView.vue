@@ -62,7 +62,7 @@ const leadsWithTarget = ref<boolean[]>([])
 const index = ref(0)
 const revealed = ref(false)
 const gotIt = ref(0)
-const again = ref(0)
+const missed = ref(0)
 
 const current = computed(() => queue.value[index.value])
 const showTarget = computed(() => leadsWithTarget.value[index.value] ?? true)
@@ -83,7 +83,7 @@ function start() {
   index.value = 0
   revealed.value = false
   gotIt.value = 0
-  again.value = 0
+  missed.value = 0
   phase.value = 'running'
 }
 
@@ -92,7 +92,7 @@ function grade(known: boolean) {
   const code = store.reviewLanguage
   if (!card || !code) return
   store.gradeCard(code, card.id, known)
-  known ? gotIt.value++ : again.value++
+  known ? gotIt.value++ : missed.value++
   revealed.value = false
   if (index.value + 1 >= queue.value.length) phase.value = 'done'
   else index.value++
@@ -256,7 +256,7 @@ async function speak(text: string) {
       </div>
 
       <div v-if="revealed" class="grade">
-        <button class="again" @click="grade(false)">Again</button>
+        <button class="missed" @click="grade(false)">Missed</button>
         <button class="known" @click="grade(true)">Got it</button>
       </div>
       <div v-else class="grade-placeholder" />
@@ -266,7 +266,7 @@ async function speak(text: string) {
     <section v-else-if="phase === 'done'" class="done">
       <div class="done-emoji">🎉</div>
       <h2>Nice work!</h2>
-      <p>You reviewed {{ queue.length }} card{{ queue.length === 1 ? '' : 's' }} — {{ gotIt }} got it, {{ again }} to revisit.</p>
+      <p>You reviewed {{ queue.length }} card{{ queue.length === 1 ? '' : 's' }} — {{ gotIt }} got it, {{ missed }} to practise again.</p>
       <div class="done-actions">
         <button class="secondary" @click="phase = 'setup'">Change filters</button>
         <button class="start" @click="store.exitReview()">Done</button>
@@ -594,7 +594,7 @@ async function speak(text: string) {
   font-weight: 700;
   font-size: 16px;
 }
-.again {
+.missed {
   background: var(--danger-soft);
   color: var(--danger);
 }
