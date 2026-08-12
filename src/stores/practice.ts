@@ -38,6 +38,8 @@ export const PALETTES: { id: PaletteId; name: string; blurb: string; swatch: str
   { id: 'confident', name: 'Confident', blurb: 'Indigo and mint', swatch: ['#6c8cff', '#4ad6a0', '#1a1e30'] },
 ]
 
+import { isDue, nextDueAt } from '@/lib/schedule'
+
 const STORAGE_KEY = 'language-practice:v2'
 const MAX_HISTORY_TURNS = 10
 
@@ -333,6 +335,8 @@ export const usePracticeStore = defineStore('practice', () => {
     return {
       total: deck.length,
       needsPractice: deck.filter(needsPractice).length,
+      due: deck.filter((c) => isDue(c)).length,
+      nextDueAt: nextDueAt(deck),
     }
   }
 
@@ -800,6 +804,7 @@ export const usePracticeStore = defineStore('practice', () => {
     languagesWithDecks,
     deckStats,
     needsPractice,
+    isDue,
     // recap
     showRecap,
     recapLoading,

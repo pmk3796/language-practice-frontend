@@ -5,6 +5,7 @@ import { completeWordPair, fetchSpeech, transcribeAudio } from '@/api/client'
 import { useRecorder } from '@/composables/useRecorder'
 import { checkSpoken } from '@/lib/spoken'
 import { isSilent } from '@/lib/silence'
+import { describeDue, isDue, nextDueAt } from '@/lib/schedule'
 import { playAudio } from '@/lib/audio'
 import SettingsButton from '@/components/SettingsButton.vue'
 import type { Flashcard } from '@/types'
@@ -32,8 +33,18 @@ function toggle(list: string[], value: string) {
   else list.push(value)
 }
 
+/**
+ * Off by default: the schedule is the point, and a deck that shows everything
+ * every time is what made a mastered card come back forever. On for when you
+ * actually want to drill past what is due.
+ */
+const ignoreSchedule = ref(false)
+
+const dueCards = computed(() => store.reviewDeck.filter((c) => isDue(c)))
+const nextDue = computed(() => nextDueAt(store.reviewDeck))
+
 const filtered = computed<Flashcard[]>(() => {
-  let cards = [...store.reviewDeck]
+  let cards = ignoreSchedule.value ? [...store.reviewDeck] : [...dueCards.value]
   if (needsPracticeOnly.value) cards = cards.filter(store.needsPractice)
   if (selectedTopics.value.length)
     cards = cards.filter((c) => c.topic && selectedTopics.value.includes(c.topic))
@@ -49,6 +60,12 @@ const filtered = computed<Flashcard[]>(() => {
 
 const anyFilter = computed(
   () => needsPracticeOnly.value || selectedTopics.value.length > 0 || selectedPos.value.length > 0,
+)
+/** Nothing to review now, but the deck is not empty — it is just not due yet. */
+const restingUntil = computed(() =>
+  !ignoreSchedule.value && !dueCards.value.length && store.reviewDeck.length && nextDue.value
+    ? describeDue(nextDue.value)
+    : '',
 )
 function clearFilters() {
   needsPracticeOnly.value = false
@@ -354,6 +371,26 @@ async function speak(text: string) {
 
         <div class="divider" />
 
+        <!-- Which cards exist for this run — not a filter, which is why it sits
+             above the optional ones rather than among them. -->
+        <div class="field">
+          <span class="flabel">Schedule</span>
+          <div class="chips">
+            <button class="chip" :class="{ on: ignoreSchedule }" @click="ignoreSchedule = !ignoreSchedule">
+              Review everything
+            </button>
+            <span class="chip-note">
+              {{
+                ignoreSchedule
+                  ? 'Ignoring when cards are next due.'
+                  : `${dueCards.length} of ${store.reviewDeck.length} due — cards you know return less often.`
+              }}
+            </span>
+          </div>
+        </div>
+
+        <div class="divider" />
+
         <!-- Sort: single choice (connected segments). -->
         <div class="field">
           <span class="flabel">Sort by</span>
@@ -419,10 +456,18 @@ async function speak(text: string) {
         <div class="setup-footer">
           <button class="manage-link" @click="phase = 'manage'">✎ Manage cards</button>
           <span class="match">
-            Reviewing <strong>{{ filtered.length }}</strong> of {{ store.reviewDeck.length }}
+            <template v-if="restingUntil">
+              All caught up — next card due {{ restingUntil }}
+            </template>
+            <template v-else>
+              Reviewing <strong>{{ filtered.length }}</strong> of
+              {{ ignoreSchedule ? store.reviewDeck.length : dueCards.length }}
+              {{ ignoreSchedule ? 'in the deck' : 'due' }}
+            </template>
           </span>
           <button class="start" :disabled="!filtered.length" @click="start">
-            Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →
+            <template v-if="restingUntil">Nothing due</template>
+            <template v-else>Review {{ filtered.length }} card{{ filtered.length === 1 ? '' : 's' }} →</template>
           </button>
         </div>
       </div>
@@ -818,6 +863,11 @@ async function speak(text: string) {
 }
 .hint.info {
   color: var(--accent-2);
+}
+.chip-note {
+  align-self: center;
+  color: var(--muted);
+  font-size: 12.5px;
 }
 .manage-head {
   display: flex;
