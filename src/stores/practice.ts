@@ -314,11 +314,17 @@ export const usePracticeStore = defineStore('practice', () => {
     reviewLanguage.value ? ensureDeck(reviewLanguage.value) : [],
   )
 
-  // A card "needs practice" if it's low in the Leitner boxes, or has ever been
-  // missed — a word you got wrong once is worth another look even if it has
-  // since climbed back up.
+  /*
+   * A card needs practice while it is still low in the Leitner boxes.
+   *
+   * This used to also count any card ever missed, which sounded reasonable and
+   * was wrong: wrongCount is a lifetime total that never decays, so a single
+   * early miss marked a card forever and the count only ever grew — cards shown
+   * as Mastered were still being counted. Missing a card already resets it to
+   * box 1, so the box alone says whether it needs work right now.
+   */
   function needsPractice(c: Flashcard): boolean {
-    return (c.box ?? 1) <= 2 || (c.wrongCount ?? 0) > 0
+    return (c.box ?? 1) <= 2
   }
 
   // Summary shown on the home flashcards card.

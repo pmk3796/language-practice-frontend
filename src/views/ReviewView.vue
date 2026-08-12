@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
-import { fetchSpeech, transcribeAudio } from '@/api/client'
+import { completeWordPair, fetchSpeech, transcribeAudio } from '@/api/client'
 import { useRecorder } from '@/composables/useRecorder'
 import { checkSpoken } from '@/lib/spoken'
 import { isSilent } from '@/lib/silence'
 import { playAudio } from '@/lib/audio'
+import SettingsButton from '@/components/SettingsButton.vue'
 import type { Flashcard } from '@/types'
 
 const store = usePracticeStore()
@@ -150,16 +151,41 @@ const managed = computed(() => {
   )
 })
 
-function addCard() {
+/** One side is enough to add a card; the other can be looked up. */
+const canAdd = computed(() => !!(newTarget.value.trim() || newEnglish.value.trim()))
+const lookingUp = ref(false)
+
+async function addCard() {
   const lang = store.reviewLanguage
-  if (!lang) return
-  const result = store.addCardTo(lang, newTarget.value, newEnglish.value)
+  if (!lang || !canAdd.value || lookingUp.value) return
+
+  let target = newTarget.value.trim()
+  let english = newEnglish.value.trim()
+
+  // Whichever half is missing, ask for it. The supplied half is replaced too:
+  // the model returns the dictionary form, which is the more useful card.
+  if (!target || !english) {
+    lookingUp.value = true
+    addNotice.value = ''
+    try {
+      const pair = await completeWordPair(lang, target ? 'target' : 'english', target || english)
+      target = pair.target || target
+      english = pair.english || english
+    } catch (err) {
+      addNotice.value = err instanceof Error ? err.message : 'Could not look that up.'
+      return
+    } finally {
+      lookingUp.value = false
+    }
+  }
+
+  const result = store.addCardTo(lang, target, english)
   if (result === 'empty') {
     addNotice.value = 'Both the word and its meaning are needed.'
     return
   }
   if (result === 'duplicate') {
-    addNotice.value = `“${newTarget.value.trim()}” is already in this deck.`
+    addNotice.value = `“${target}” is already in this deck.`
     return
   }
   addNotice.value = ''
@@ -280,6 +306,7 @@ async function speak(text: string) {
         <span class="count">{{ store.reviewDeck.length }} cards</span>
       </div>
       <div class="tagging" v-if="store.tagging">Categorising…</div>
+      <SettingsButton class="gear-slot" />
     </header>
 
     <!-- SETUP: configure the run -->
@@ -375,7 +402,7 @@ async function speak(text: string) {
         </p>
 
         <div class="setup-footer">
-          <button class="manage-link" @click="phase = 'manage'">Manage cards</button>
+          <button class="manage-link" @click="phase = 'manage'">✎ Manage cards</button>
           <span class="match">
             Reviewing <strong>{{ filtered.length }}</strong> of {{ store.reviewDeck.length }}
           </span>
@@ -396,13 +423,22 @@ async function speak(text: string) {
               ref="targetInput"
               v-model="newTarget"
               :placeholder="langInfo?.name || 'Word'"
+              :disabled="lookingUp"
               @keydown.enter="addCard"
             />
-            <input v-model="newEnglish" placeholder="English meaning" @keydown.enter="addCard" />
-            <button class="add-btn" @click="addCard">Add</button>
+            <input
+              v-model="newEnglish"
+              placeholder="English meaning"
+              :disabled="lookingUp"
+              @keydown.enter="addCard"
+            />
+            <button class="add-btn" :disabled="!canAdd || lookingUp" @click="addCard">
+              <span v-if="lookingUp" class="spinner" /><span>{{ lookingUp ? 'Looking up…' : 'Add' }}</span>
+            </button>
           </div>
         </div>
         <p v-if="addNotice" class="hint notice">{{ addNotice }}</p>
+        <p v-else class="hint">Fill in either side — the other is looked up for you.</p>
 
         <div class="divider" />
 
@@ -528,6 +564,10 @@ async function speak(text: string) {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+/* Pushes the gear to the far edge, wherever the optional tagging note sits. */
+.gear-slot {
+  margin-left: auto;
 }
 .back {
   background: var(--panel-2);
@@ -694,16 +734,18 @@ async function speak(text: string) {
   margin: 0;
 }
 
+/* Reads as an action rather than a caption: it was styled like disabled text
+   next to the one button on the screen that is actually filled in. */
 .manage-link {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  color: var(--on-accent-soft);
   border-radius: 10px;
   padding: 9px 14px;
   font-size: 13px;
+  font-weight: 600;
 }
 .manage-link:hover {
-  color: var(--text);
   border-color: var(--accent);
 }
 
@@ -734,6 +776,9 @@ async function speak(text: string) {
 }
 .add-btn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--accent);
   color: var(--on-accent);
   border: none;
@@ -741,6 +786,17 @@ async function speak(text: string) {
   padding: 9px 18px;
   font-size: 14px;
   font-weight: 600;
+}
+/* Nothing typed yet, or a lookup in flight. */
+.add-btn:disabled {
+  background: var(--tint);
+  color: var(--muted);
+  cursor: default;
+}
+/* Follows the label, which changes colour with the disabled state. */
+.add-btn .spinner {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
 }
 .hint.notice {
   color: var(--warn);
