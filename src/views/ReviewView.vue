@@ -302,8 +302,13 @@ async function toggleSpeak() {
     }
     const heard = await transcribeAudio(blob, filename, code)
     // The language decides which written differences are audible at all.
-    const result = checkSpoken(heard, current.value?.target ?? '', store.reviewLanguage ?? undefined)
-    spoken.value = result
+    const result = checkSpoken(heard.text, current.value?.target ?? '', store.reviewLanguage ?? undefined)
+    /*
+     * A transcription made only of prompt words usually means the mic caught
+     * nothing. Only treat it that way once the answer has failed anyway — some
+     * prompt words are legitimate answers, and a correct one must still count.
+     */
+    spoken.value = !result.correct && heard.promptEcho ? { heard: '', correct: false } : result
     revealed.value = true
     // No auto-advance: the verdict is worth reading, and the learner moves on
     // when they're ready.

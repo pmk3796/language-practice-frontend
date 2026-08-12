@@ -37,12 +37,22 @@ export async function fetchLanguages(): Promise<{ default: string; languages: La
   return res.json()
 }
 
+export interface Transcript {
+  text: string
+  /**
+   * The transcription is made only of words from the transcription prompt, so
+   * the audio probably contained no speech. Advisory: a prompt word can also be
+   * a real answer, so only reach for this when the answer was wrong anyway.
+   */
+  promptEcho: boolean
+}
+
 /** Speech-to-text only — used to check a spoken flashcard answer. */
 export async function transcribeAudio(
   audio: Blob,
   filename: string,
   language: string,
-): Promise<string> {
+): Promise<Transcript> {
   const form = new FormData()
   form.append('audio', audio, filename)
   form.append('language', language)
@@ -57,7 +67,8 @@ export async function transcribeAudio(
     }
     throw new Error(message)
   }
-  return (await res.json()).text ?? ''
+  const body = await res.json()
+  return { text: body.text ?? '', promptEcho: !!body.promptEcho }
 }
 
 export async function fetchLevels(): Promise<{ default: string; levels: LevelOption[] }> {
