@@ -87,7 +87,7 @@ function formatDate(ts: number): string {
           <div class="deck-info">
             <span class="deck-count">{{ store.deckStats(store.homeLanguage).total }} cards</span>
             <span v-if="store.deckStats(store.homeLanguage).due" class="deck-need">
-              🎯 {{ store.deckStats(store.homeLanguage).due }} due
+              ⏰ {{ store.deckStats(store.homeLanguage).due }} due
             </span>
           </div>
           <button
@@ -111,7 +111,7 @@ function formatDate(ts: number): string {
                 <span class="deck-sub">
                   {{ store.deckStats(lang.code).total }} cards
                   <span v-if="store.deckStats(lang.code).due" class="deck-need">
-                    · 🎯 {{ store.deckStats(lang.code).due }} due
+                    · ⏰ {{ store.deckStats(lang.code).due }} due
                   </span>
                 </span>
               </div>
