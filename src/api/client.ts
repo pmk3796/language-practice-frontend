@@ -73,15 +73,16 @@ export async function fetchProfiles(): Promise<{ default: string; profiles: Prof
 }
 
 /**
- * Fill in the missing half of a flashcard. `side` names the half that was typed,
- * and both halves come back — the model may return a tidier dictionary form of
- * what was given.
+ * Fill in the missing half of a flashcard. `side` is the box the text was typed
+ * into and is treated as a hint only; `typedSide` comes back saying which side
+ * the text actually turned out to be. Both halves are returned — the model may
+ * return a tidier dictionary form of what was given.
  */
 export async function completeWordPair(
   language: string,
   side: 'target' | 'english',
   text: string,
-): Promise<{ target: string; english: string }> {
+): Promise<{ target: string; english: string; typedSide: 'target' | 'english' }> {
   const res = await fetch(`${BASE}/api/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

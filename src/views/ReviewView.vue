@@ -137,7 +137,8 @@ function masteryTitle(card: Flashcard): string {
 
 const newTarget = ref('')
 const newEnglish = ref('')
-const addNotice = ref('')
+/** Feedback under the add row: a problem, or a note about what was saved. */
+const notice = ref<{ text: string; tone: 'warn' | 'info' } | null>(null)
 const search = ref('')
 /** Last removal, kept so it can be undone rather than confirmed up front. */
 const lastRemoved = ref<{ card: Flashcard; index: number } | null>(null)
@@ -161,18 +162,30 @@ async function addCard() {
 
   let target = newTarget.value.trim()
   let english = newEnglish.value.trim()
+  /** Set when the text turned out to belong to the other side of the card. */
+  let swap: { typed: string; language: string } | null = null
 
   // Whichever half is missing, ask for it. The supplied half is replaced too:
   // the model returns the dictionary form, which is the more useful card.
   if (!target || !english) {
+    const typedInto = target ? 'target' : 'english'
+    const typed = target || english
     lookingUp.value = true
-    addNotice.value = ''
+    notice.value = null
     try {
-      const pair = await completeWordPair(lang, target ? 'target' : 'english', target || english)
+      const pair = await completeWordPair(lang, typedInto, typed)
       target = pair.target || target
       english = pair.english || english
+      // Typing an English word into the target box is a slip, not an instruction
+      // — the card is built correctly, and saying so beats silently rearranging it.
+      if (pair.typedSide !== typedInto) {
+        swap = {
+          typed,
+          language: pair.typedSide === 'english' ? 'English' : langInfo.value?.name || 'the other language',
+        }
+      }
     } catch (err) {
-      addNotice.value = err instanceof Error ? err.message : 'Could not look that up.'
+      notice.value = { text: err instanceof Error ? err.message : 'Could not look that up.', tone: 'warn' }
       return
     } finally {
       lookingUp.value = false
@@ -181,14 +194,16 @@ async function addCard() {
 
   const result = store.addCardTo(lang, target, english)
   if (result === 'empty') {
-    addNotice.value = 'Both the word and its meaning are needed.'
+    notice.value = { text: 'Both the word and its meaning are needed.', tone: 'warn' }
     return
   }
   if (result === 'duplicate') {
-    addNotice.value = `“${target}” is already in this deck.`
+    notice.value = { text: `“${target}” is already in this deck.`, tone: 'warn' }
     return
   }
-  addNotice.value = ''
+  notice.value = swap
+    ? { text: `“${swap.typed}” is ${swap.language}, so the card is “${target}” — “${english}”.`, tone: 'info' }
+    : null
   newTarget.value = ''
   newEnglish.value = ''
   targetInput.value?.focus()
@@ -437,7 +452,7 @@ async function speak(text: string) {
             </button>
           </div>
         </div>
-        <p v-if="addNotice" class="hint notice">{{ addNotice }}</p>
+        <p v-if="notice" class="hint" :class="notice.tone">{{ notice.text }}</p>
         <p v-else class="hint">Fill in either side — the other is looked up for you.</p>
 
         <div class="divider" />
@@ -798,8 +813,11 @@ async function speak(text: string) {
   border-color: color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor;
 }
-.hint.notice {
+.hint.warn {
   color: var(--warn);
+}
+.hint.info {
+  color: var(--accent-2);
 }
 .manage-head {
   display: flex;
