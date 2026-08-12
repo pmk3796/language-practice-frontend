@@ -311,6 +311,17 @@ export const usePracticeStore = defineStore('practice', () => {
   }
   const flashcards = computed(() => ensureDeck(activeLangCode.value))
 
+  /**
+   * Just what this conversation has produced. The panel beside a conversation is
+   * a tray for what you have saved and might want to unsave, not a view of a
+   * deck that grows without bound — that lives on the deck screen.
+   */
+  const sessionFlashcards = computed(() =>
+    activeSessionId.value
+      ? flashcards.value.filter((c) => c.sessionId === activeSessionId.value)
+      : [],
+  )
+
   // The deck currently under review (its own language, independent of sessions).
   const reviewDeck = computed(() =>
     reviewLanguage.value ? ensureDeck(reviewLanguage.value) : [],
@@ -685,6 +696,7 @@ export const usePracticeStore = defineStore('practice', () => {
       english: e,
       box: 1,
       createdAt: Date.now(),
+      sessionId: activeSessionId.value ?? undefined,
     })
   }
 
@@ -796,6 +808,8 @@ export const usePracticeStore = defineStore('practice', () => {
     activeLanguage,
     activeProfile,
     // flashcards / review
+    sessionFlashcards,
+    activeLangCode,
     reviewLanguage,
     reviewDirection,
     setReviewDirection,

@@ -64,6 +64,12 @@ export interface Flashcard {
   createdAt: number
   // Behavioral metadata (tracked locally as you review).
   lastReviewedAt?: number
+  /**
+   * The session this card was saved during, so a conversation can show what it
+   * produced. Absent on cards added by hand and on anything saved before this
+   * was recorded — both correctly read as "not from this conversation".
+   */
+  sessionId?: string
   reviewCount?: number
   wrongCount?: number
   // Semantic metadata (added lazily by AI, cached forever).

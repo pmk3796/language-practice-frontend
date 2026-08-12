@@ -242,6 +242,11 @@ function undoRemove() {
 }
 
 /** Up one level: run → options, options → out of the deck. */
+const backLabel = computed(() => {
+  if (phase.value !== 'setup') return 'Options'
+  return store.activeSession ? 'Conversation' : 'Home'
+})
+
 function goBack() {
   if (phase.value === 'setup') store.exitReview()
   else {
@@ -331,7 +336,7 @@ async function speak(text: string) {
       <!-- One back button that steps up a single level: a run returns to the
            options screen, and the options screen leaves the deck. Two identical
            arrows side by side read as two competing "backs". -->
-      <button class="back" @click="goBack">← {{ phase === 'setup' ? 'Home' : 'Options' }}</button>
+      <button class="back" @click="goBack">← {{ backLabel }}</button>
       <div class="title">
         <span class="flag">{{ langInfo?.flag }}</span>
         {{ langInfo?.name }} flashcards

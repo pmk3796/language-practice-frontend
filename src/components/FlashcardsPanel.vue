@@ -1,45 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { usePracticeStore } from '@/stores/practice'
 
 const store = usePracticeStore()
 
-const reviewing = ref(false)
-const index = ref(0)
-const revealed = ref(false)
+/*
+ * This panel used to run its own cut-down review inside the column: no way out
+ * except finishing every card, no schedule, no direction, no spoken answers. It
+ * predated the review screen and had quietly become a worse copy of it, so the
+ * button now opens the real one — which also means there is a way back.
+ */
+const stats = computed(() => store.deckStats(store.activeLangCode))
 
-// Review lowest-box (least-known) cards first.
-const queue = computed(() => [...store.flashcards].sort((a, b) => a.box - b.box))
-const current = computed(() => queue.value[index.value])
-
-function startReview() {
-  if (!store.flashcards.length) return
-  reviewing.value = true
-  index.value = 0
-  revealed.value = false
-}
-
-function grade(known: boolean) {
-  if (!current.value) return
-  store.reviewFlashcard(current.value.id, known)
-  next()
-}
-
-function next() {
-  revealed.value = false
-  if (index.value + 1 >= queue.value.length) {
-    reviewing.value = false // finished the deck
-  } else {
-    index.value += 1
-  }
-}
-
-// Leaving review if the deck empties (e.g. all cards deleted).
-watch(
-  () => store.flashcards.length,
-  (n) => {
-    if (n === 0) reviewing.value = false
-  },
+const reviewLabel = computed(() =>
+  stats.value.due ? `▶ Review ${stats.value.due} due` : '▶ Review deck',
 )
 </script>
 
@@ -47,40 +21,29 @@ watch(
   <section class="panel">
     <header class="panel-head">
       <h2>Flashcards</h2>
-      <span class="count">{{ store.flashcards.length }}</span>
+      <span class="count">{{ store.sessionFlashcards.length }}</span>
     </header>
 
-    <!-- Review mode -->
-    <div v-if="reviewing && current" class="review">
-      <div class="card" :class="{ revealed }" @click="revealed = !revealed">
-        <div class="face front">{{ current.target }}</div>
-        <div class="face back">{{ current.english }}</div>
-        <div class="flip-hint">{{ revealed ? '' : 'tap to reveal' }}</div>
-      </div>
-      <div v-if="revealed" class="grade">
-        <button class="again" @click="grade(false)">Again</button>
-        <button class="known" @click="grade(true)">Got it</button>
-      </div>
-      <div class="progress">{{ index + 1 }} / {{ queue.length }}</div>
-    </div>
+    <div class="body">
+      <button v-if="stats.total" class="review-btn" @click="store.startReview(store.activeLangCode)">
+        {{ reviewLabel }}
+      </button>
 
-    <!-- List mode -->
-    <div v-else class="body">
-      <p v-if="!store.flashcards.length" class="empty">
-        Save words from the Translations panel, or drag across words in the conversation to save a phrase.
+      <p v-if="!store.sessionFlashcards.length" class="empty">
+        Words you save in this conversation appear here.
+        <template v-if="stats.total">
+          Your {{ stats.total }}-card deck is behind the review button.
+        </template>
       </p>
-      <template v-else>
-        <button class="review-btn" @click="startReview">▶ Review {{ store.flashcards.length }} cards</button>
-        <ul>
-          <li v-for="card in store.flashcards" :key="card.id">
-            <div class="pair">
-              <span class="target">{{ card.target }}</span>
-              <span class="en">{{ card.english }}</span>
-            </div>
-            <button class="del" title="Remove" @click="store.removeFlashcard(card.id)">✕</button>
-          </li>
-        </ul>
-      </template>
+      <ul v-else>
+        <li v-for="card in store.sessionFlashcards" :key="card.id">
+          <div class="pair">
+            <span class="target">{{ card.target }}</span>
+            <span class="en">{{ card.english }}</span>
+          </div>
+          <button class="del" title="Remove" @click="store.removeFlashcard(card.id)">✕</button>
+        </li>
+      </ul>
     </div>
   </section>
 </template>
@@ -153,72 +116,5 @@ li {
 }
 .del:hover {
   color: var(--danger);
-}
-
-/* Review */
-.review {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-.card {
-  width: 100%;
-  min-height: 130px;
-  background: linear-gradient(160deg, var(--card-a), var(--card-b));
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  padding: 16px;
-}
-.face {
-  font-size: 24px;
-  font-weight: 700;
-}
-.face.front {
-  color: var(--accent-2);
-}
-.face.back {
-  color: var(--text);
-  font-size: 20px;
-}
-.card:not(.revealed) .back {
-  display: none;
-}
-.flip-hint {
-  color: var(--muted);
-  font-size: 12px;
-}
-.grade {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-.grade button {
-  flex: 1;
-  border: none;
-  border-radius: 10px;
-  padding: 10px;
-  font-weight: 600;
-  font-size: 15px;
-}
-.again {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.known {
-  background: var(--success-soft);
-  color: var(--accent-2);
-}
-.progress {
-  color: var(--muted);
-  font-size: 13px;
 }
 </style>
