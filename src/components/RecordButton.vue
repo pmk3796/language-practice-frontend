@@ -44,13 +44,11 @@ const label = computed(() => {
   </div>
 
   <div v-else class="recorder">
-    <div v-if="store.activeProfile" class="scenario-block">
-      <div class="scenario">
-        <span class="scenario-emoji">{{ store.activeProfile.emoji }}</span>
-        {{ store.activeProfile.name }}
-      </div>
-      <p class="scenario-desc">{{ store.activeProfile.description }}</p>
-    </div>
+    <!-- The scenario's name is already in the topbar; only the task it sets is
+         worth repeating here, next to the button that acts on it. -->
+    <p v-if="store.activeProfile?.description" class="scenario-desc">
+      {{ store.activeProfile.description }}
+    </p>
     <button
       class="mic"
       :class="{ recording: isRecording, busy }"
@@ -97,33 +95,10 @@ const label = computed(() => {
   height: 100%;
 }
 
-.scenario-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.scenario {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 14px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.scenario-emoji {
-  font-size: 16px;
-}
-
 .scenario-desc {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
