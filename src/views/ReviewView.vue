@@ -301,7 +301,8 @@ async function toggleSpeak() {
       return
     }
     const heard = await transcribeAudio(blob, filename, code)
-    const result = checkSpoken(heard, current.value?.target ?? '')
+    // The language decides which written differences are audible at all.
+    const result = checkSpoken(heard, current.value?.target ?? '', store.reviewLanguage ?? undefined)
     spoken.value = result
     revealed.value = true
     // No auto-advance: the verdict is worth reading, and the learner moves on
