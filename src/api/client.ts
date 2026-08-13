@@ -93,11 +93,16 @@ export async function completeWordPair(
   language: string,
   side: 'target' | 'english',
   text: string,
+  /**
+   * The phrase this word was taken from. With it, the reply keeps the form the
+   * word had there; without it, the reply is the dictionary form.
+   */
+  context?: { phrase: string; english: string },
 ): Promise<{ target: string; english: string; typedSide: 'target' | 'english' }> {
   const res = await fetch(`${BASE}/api/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ language, side, text }),
+    body: JSON.stringify({ language, side, text, ...(context ? { context } : {}) }),
   })
   if (!res.ok) {
     let message = 'Could not look that up.'
