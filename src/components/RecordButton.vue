@@ -78,10 +78,23 @@ const label = computed(() => {
       <p class="retry-hint">Tap the mic to try again once it's sorted.</p>
     </div>
 
-    <p v-else class="hint">
-      Tap, say something in
-      <strong>{{ store.activeLanguage?.name || 'your language' }}</strong>, tap again.
-    </p>
+    <template v-else>
+      <p class="hint">Tap, speak, tap again.</p>
+      <!--
+        The old line said "say something in Italian", which reads as a rule and
+        is the thing that stops someone mid-sentence when a word will not come.
+        Reaching for English is the intended move, not a failure, so it is stated
+        outright and stays on screen rather than being something you discover.
+      -->
+      <div class="english-ok">
+        <strong>Don't know a word? Say it in English.</strong>
+        <span>
+          Keep talking — you'll get it back in
+          {{ store.activeLanguage?.name || "the language you're learning" }}, ready to save as a
+          flashcard.
+        </span>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -93,6 +106,26 @@ const label = computed(() => {
   gap: 12px;
   justify-content: center;
   height: 100%;
+}
+
+.english-ok {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 290px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  padding: 11px 14px;
+  text-align: center;
+  line-height: 1.45;
+}
+.english-ok strong {
+  color: var(--on-accent-soft);
+  font-size: 13px;
+}
+.english-ok span {
+  color: var(--muted);
+  font-size: 12.5px;
 }
 
 .scenario-desc {
