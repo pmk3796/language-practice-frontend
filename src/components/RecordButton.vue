@@ -30,8 +30,8 @@ const isKeyError = computed(() => store.errorCode === 'invalid_api_key')
 
 const label = computed(() => {
   if (busy.value) return 'Thinking…'
-  if (isRecording.value) return 'Stop'
-  return 'Speak'
+  if (isRecording.value) return 'Tap to stop'
+  return 'Tap to speak'
 })
 </script>
 
@@ -57,6 +57,8 @@ const label = computed(() => {
     >
       <span v-if="busy" class="spinner" />
       <span v-else class="icon">{{ isRecording ? '■' : '🎙' }}</span>
+      <!-- Same text as the label below; only one of the two is ever shown. -->
+      <span class="inline-label">{{ label }}</span>
     </button>
     <div class="label">{{ label }}</div>
     <p v-if="!isSupported" class="hint danger">Recording isn't supported in this browser.</p>
@@ -217,6 +219,46 @@ const label = computed(() => {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Shown only in the compact layout below. */
+.inline-label {
+  display: none;
+}
+
+/*
+ * Under roughly 760px the panel cannot hold a 108px circle, its label and the
+ * note without scrolling. Rather than scroll the one control on the screen, the
+ * button becomes a wide pill with its label inside, which is shorter than the
+ * circle and label stacked and gives the tap target more width in exchange.
+ */
+@media (max-height: 760px) {
+  .mic {
+    width: 100%;
+    max-width: 290px;
+    height: auto;
+    border-radius: 14px;
+    padding: 13px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 19px;
+    box-shadow: 0 6px 18px var(--accent-glow);
+  }
+  .inline-label {
+    display: inline;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .label {
+    display: none;
+  }
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border-width: 3px;
   }
 }
 
