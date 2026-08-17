@@ -78,23 +78,18 @@ const label = computed(() => {
       <p class="retry-hint">Tap the mic to try again once it's sorted.</p>
     </div>
 
-    <template v-else>
-      <p class="hint">Tap, speak, tap again.</p>
-      <!--
-        The old line said "say something in Italian", which reads as a rule and
-        is the thing that stops someone mid-sentence when a word will not come.
-        Reaching for English is the intended move, not a failure, so it is stated
-        outright and stays on screen rather than being something you discover.
-      -->
-      <div class="english-ok">
-        <strong>Don't know a word? Say it in English.</strong>
-        <span>
-          Keep talking — you'll get it back in
-          {{ store.activeLanguage?.name || "the language you're learning" }}, ready to save as a
-          flashcard.
-        </span>
-      </div>
-    </template>
+    <!--
+      The old line here said "say something in Italian", which reads as a rule —
+      and it is the rule that stops someone mid-sentence when a word will not
+      come. Reaching for English is the intended move, so it is stated outright
+      and stays on screen rather than being something you discover.
+    -->
+    <div v-else class="english-ok">
+      <strong>Don't know a word? Say it in English.</strong>
+      <span>
+        You'll get it back in {{ store.activeLanguage?.name || "the language you're learning" }}.
+      </span>
+    </div>
   </div>
 </template>
 
@@ -103,9 +98,18 @@ const label = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  justify-content: center;
+  /* Scales with the panel so a shorter window tightens up rather than pushing
+     the English note out of sight. */
+  gap: clamp(6px, 1.4vh, 12px);
+  /*
+   * "safe" matters: with plain centring, content taller than the panel is
+   * clipped at BOTH ends and the top is unreachable however you scroll. Safe
+   * centring falls back to top-aligned once it overflows, so the scroll can
+   * actually reach it.
+   */
+  justify-content: safe center;
   height: 100%;
+  overflow-y: auto;
 }
 
 .english-ok {
@@ -115,7 +119,7 @@ const label = computed(() => {
   max-width: 290px;
   background: var(--accent-soft);
   border-radius: 12px;
-  padding: 11px 14px;
+  padding: clamp(8px, 1.2vh, 11px) 14px;
   text-align: center;
   line-height: 1.45;
 }
@@ -155,13 +159,18 @@ const label = computed(() => {
 }
 
 .mic {
-  width: 108px;
-  height: 108px;
+  /* One value drives both axes, so it can never come out an oval. Without the
+     flex-shrink the column squashes the height while the width stays put, which
+     is what turned it into one. */
+  --mic-size: clamp(76px, 12vh, 108px);
+  width: var(--mic-size);
+  height: var(--mic-size);
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
   background: linear-gradient(145deg, var(--accent-grad-a), var(--accent-grad-b));
   color: var(--on-accent);
-  font-size: 40px;
+  font-size: calc(var(--mic-size) * 0.37);
   box-shadow: 0 10px 30px var(--accent-glow);
   transition: transform 0.12s ease, box-shadow 0.2s ease;
   display: grid;
