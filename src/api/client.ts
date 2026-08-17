@@ -2,6 +2,25 @@ import type { Correction, LanguageOption, LevelOption, ProfileOption, Recap, Tra
 
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
+/**
+ * In the desktop app the backend listens on loopback, which any other program
+ * on the machine — including any web page in any browser — can also reach. It
+ * therefore requires a per-launch token, handed to this renderer through the
+ * preload. In a plain browser dev session there is no desktopAPI and no token,
+ * and the backend leaves the gate open.
+ */
+const AUTH_TOKEN: string | undefined = (window as any).desktopAPI?.authToken
+
+/**
+ * fetch() with the token attached. Headers are merged rather than replaced so
+ * multipart bodies keep the boundary Content-Type the browser sets for them.
+ */
+function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers)
+  if (AUTH_TOKEN) headers.set('X-LP-Token', AUTH_TOKEN)
+  return fetch(`${BASE}${path}`, { ...init, headers })
+}
+
 export interface HistoryTurn {
   role: 'user' | 'assistant'
   content: string
@@ -13,7 +32,7 @@ export async function requestRecap(
   messages: HistoryTurn[],
   corrections: { correctedSentence: string; explanation: string }[],
 ): Promise<Recap> {
-  const res = await fetch(`${BASE}/api/recap`, {
+  const res = await apiFetch(`/api/recap`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ language, profile, messages, corrections }),
@@ -32,7 +51,7 @@ export async function requestRecap(
 }
 
 export async function fetchLanguages(): Promise<{ default: string; languages: LanguageOption[] }> {
-  const res = await fetch(`${BASE}/api/languages`)
+  const res = await apiFetch(`/api/languages`)
   if (!res.ok) throw new Error('Could not load languages')
   return res.json()
 }
@@ -56,7 +75,7 @@ export async function transcribeAudio(
   const form = new FormData()
   form.append('audio', audio, filename)
   form.append('language', language)
-  const res = await fetch(`${BASE}/api/transcribe`, { method: 'POST', body: form })
+  const res = await apiFetch(`/api/transcribe`, { method: 'POST', body: form })
   if (!res.ok) {
     let message = 'Could not hear that — try again.'
     try {
@@ -72,13 +91,13 @@ export async function transcribeAudio(
 }
 
 export async function fetchLevels(): Promise<{ default: string; levels: LevelOption[] }> {
-  const res = await fetch(`${BASE}/api/levels`)
+  const res = await apiFetch(`/api/levels`)
   if (!res.ok) throw new Error('Could not load levels')
   return res.json()
 }
 
 export async function fetchProfiles(): Promise<{ default: string; profiles: ProfileOption[] }> {
-  const res = await fetch(`${BASE}/api/profiles`)
+  const res = await apiFetch(`/api/profiles`)
   if (!res.ok) throw new Error('Could not load profiles')
   return res.json()
 }
@@ -99,7 +118,7 @@ export async function completeWordPair(
    */
   context?: { phrase: string; english: string },
 ): Promise<{ target: string; english: string; typedSide: 'target' | 'english' }> {
-  const res = await fetch(`${BASE}/api/translate`, {
+  const res = await apiFetch(`/api/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ language, side, text, ...(context ? { context } : {}) }),
@@ -128,7 +147,7 @@ export async function requestTags(
   language: string,
   words: { target: string; english: string }[],
 ): Promise<WordTag[]> {
-  const res = await fetch(`${BASE}/api/tag`, {
+  const res = await apiFetch(`/api/tag`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ language, words }),
@@ -151,7 +170,7 @@ export async function fetchSpeech(
   const cached = speechCache.get(key)
   if (cached) return cached
 
-  const res = await fetch(`${BASE}/api/speak`, {
+  const res = await apiFetch(`/api/speak`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, language, speed }),
@@ -210,7 +229,7 @@ export async function streamConversation(
   form.append('speed', speed)
   form.append('history', JSON.stringify(history))
 
-  const res = await fetch(`${BASE}/api/conversation`, { method: 'POST', body: form })
+  const res = await apiFetch(`/api/conversation`, { method: 'POST', body: form })
 
   if (!res.ok || !res.body) {
     let message = `Request failed (${res.status})`
