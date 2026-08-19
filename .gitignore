@@ -6,3 +6,6 @@ dist/
 .DS_Store
 dist-desktop/
 *.tsbuildinfo
+
+# JetBrains IDE state — local to whoever opened the project.
+.idea/
